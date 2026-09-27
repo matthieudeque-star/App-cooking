@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#C96A6F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Nos Repas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rose:#C96A6F; --bordeaux:#722F35; --pink:#F3D3D3; --pink2:#DE9C9C; --cream:#FDF8F5;
+  --tab:#EFDFD6; --text:#5A2A2E; --muted:#B07579; --white:#FFFDFB; --beige:#EFE3DA; --ok:#7BAF7B;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--cream);font-family:'Outfit',system-ui,-apple-system,sans-serif;color:var(--text);font-weight:400}
+body{display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer}
+h1,h2,h3{margin:0;font-weight:400}
+
+/* header */
+header{background:var(--rose);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 14px;display:flex;align-items:center;justify-content:center;position:relative;min-height:72px;flex:none}
+header h1{font-size:24px;text-align:center}
+header .hbtn{position:absolute;top:50%;transform:translateY(-50%);color:#fff;font-size:26px;width:44px;height:44px;display:flex;align-items:center;justify-content:center}
+header .hbtn.left{left:8px}
+header .hbtn.right{right:8px}
+
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px calc(24px + env(safe-area-inset-bottom));max-width:680px;width:100%;margin:0 auto}
+
+/* tab bar */
+nav{flex:none;display:flex;background:var(--tab);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;padding:12px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--bordeaux);font-size:14px}
+nav button svg{width:40px;height:40px;stroke:var(--bordeaux);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+nav button.active{background:var(--bordeaux);color:#F6E4DF}
+nav button.active svg{stroke:#F6E4DF}
+nav button.active[data-tab=suivi] svg path:last-child,nav button.active[data-tab=profil] svg{fill:#F6E4DF}
+
+/* common */
+.band{background:var(--rose);color:#fff;text-align:center;border-radius:30px;padding:10px 16px;font-size:20px;margin:12px 0}
+.band.sm{font-size:17px;padding:8px 14px}
+.card{background:var(--pink);border-radius:20px;padding:14px;margin-bottom:12px}
+.card.cream{background:#FBF1EB;box-shadow:0 4px 12px rgba(114,47,53,.12)}
+.dark{background:var(--bordeaux);color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:14px;background:var(--bordeaux);color:#fff;font-size:17px}
+.btn.rose{background:var(--rose)}
+.btn.ghost{background:transparent;border:2px solid var(--bordeaux);color:var(--bordeaux)}
+.btn.sm{padding:6px 12px;font-size:14px;border-radius:10px}
+.btn.full{width:100%}
+.btn:disabled{opacity:.45}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1}
+.muted{color:var(--muted);font-size:14px}
+.center{text-align:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+input[type=text],input[type=number],input[type=search],input[type=date],select,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1.5px solid #E5C4C4;background:#fff;outline:none}
+textarea{min-height:90px;resize:vertical}
+label.lbl{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
+.search{display:flex;align-items:center;background:var(--bordeaux);border-radius:14px;padding:4px 14px;color:#fff;margin-bottom:14px}
+.search input{background:transparent;border:0;color:#fff;flex:1;padding:8px 0;font-size:19px}
+.search input::placeholder{color:#f5d9d9}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:7px 14px;border-radius:20px;background:#fff;border:1.5px solid var(--pink2);font-size:15px}
+.chip.on{background:var(--bordeaux);color:#fff;border-color:var(--bordeaux)}
+.empty{text-align:center;color:var(--muted);padding:24px 10px;font-size:15px}
+.tag{font-size:12px;padding:2px 8px;border-radius:8px;background:#fff;color:var(--rose)}
+
+/* profiles */
+.profiles{display:flex;justify-content:center;gap:28px;margin:6px 0 14px}
+.profiles button{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--rose);font-size:18px}
+.avatar{width:84px;height:84px;border-radius:50%;background:var(--bordeaux);display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;border:4px solid transparent;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.profiles button.on .avatar{border-color:var(--pink2);box-shadow:0 0 0 3px var(--cream) inset}
+
+/* rings */
+.rings{display:flex;justify-content:space-around;margin:6px 0 16px}
+.ring{position:relative;width:150px;height:150px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.4}
+.ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:11;stroke-linecap:round}
+.ring .bg{stroke:var(--beige)}
+.ring .fg{transition:stroke-dashoffset .5s}
+
+/* meal cards */
+.meal{background:var(--pink);border-radius:18px;overflow:hidden;margin-bottom:12px}
+.meal .mtitle{text-align:center;font-size:21px;padding:8px 10px 6px}
+.meal .mtitle small{font-size:13px;color:var(--muted);display:block}
+.meal .items{padding:6px 10px 10px}
+.item{display:flex;align-items:center;gap:8px;background:#fff;border-radius:12px;padding:8px 10px;margin-bottom:6px;font-size:15px}
+.item .n{flex:1;min-width:0}
+.item .n b{font-weight:500;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .n span{font-size:12px;color:var(--muted)}
+.item .x{color:var(--rose);font-size:20px;padding:0 4px}
+.meal .adds{display:flex;gap:6px;padding:0 10px 10px}
+.meal .adds button{flex:1;background:var(--rose);color:#fff;border-radius:12px;padding:8px;font-size:15px}
+.meal .adds button.alt{background:var(--bordeaux)}
+
+/* recipe cards */
+.rcard{display:flex;gap:12px;background:var(--pink);border-radius:18px;padding:10px;margin-bottom:10px}
+.rcard .ph{width:120px;height:100px;border-radius:12px;background:linear-gradient(#cfe6f7,#9dcc57);flex:none;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:36px}
+.rcard .ph img{width:100%;height:100%;object-fit:cover}
+.rcard .info{flex:1;min-width:0;font-size:14px}
+.rcard .info h3{font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rcard .info .see{color:var(--bordeaux);font-size:13px;margin-top:4px}
+.detail{background:#fff;border-radius:14px;padding:12px;margin:-4px 0 12px;font-size:15px}
+.detail table{width:100%;border-collapse:collapse}
+.detail td{padding:4px 0;border-bottom:1px solid #f3e3e3}
+.detail td:last-child{text-align:right;color:var(--muted)}
+.typecard{background:var(--pink);border-radius:20px;padding:14px;text-align:center;font-size:24px;margin-bottom:12px}
+.typecard .em{font-size:44px;line-height:1.2}
+
+/* calendar */
+.cal{background:var(--pink);border-radius:20px;padding:12px 8px 8px;margin-bottom:12px}
+.cal .mh{display:flex;justify-content:space-between;align-items:center;font-size:24px;padding:0 6px 6px}
+.cal .mh button{font-size:30px;color:var(--bordeaux);width:44px}
+.cal .g{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:18px;row-gap:6px}
+.cal .g .h{font-size:16px}
+.cal .g .d{position:relative;height:44px;display:flex;align-items:center;justify-content:center}
+.cal .g .d span{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.cal .g .d.sel span{background:var(--bordeaux);color:#fff}
+.cal .g .d.today span{outline:2px solid var(--rose)}
+.cal .g .d.has::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:7px;height:7px;border-radius:50%;background:var(--pink2)}
+.bar{height:38px;border-radius:19px;background:var(--beige);overflow:hidden;display:flex;margin:4px 0 10px;gap:2px;padding:0 1px}
+.bar i{flex:1;background:var(--beige);border-radius:3px;transition:background .3s}
+.bar i.f{background:var(--bordeaux)}
+.bar.p i.f{background:var(--rose)}
+.recap-line{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);border-bottom:1px dotted var(--pink2);padding:2px 0}
+
+/* profile */
+.weightbox{display:flex;gap:10px;align-items:stretch}
+.weightbox .big{font-size:56px;color:var(--bordeaux);line-height:1}
+.chart{flex:1;min-width:0}
+.chart svg{width:100%;height:190px}
+.bigkcal{font-size:60px;color:var(--bordeaux);line-height:1}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(60,20,25,.45);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.modal.open{display:flex}
+.sheet{background:var(--cream);width:100%;max-width:680px;max-height:92vh;border-radius:24px 24px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));overflow-y:auto}
+.sheet h2{font-size:22px;text-align:center;margin-bottom:12px}
+.list{max-height:40vh;overflow-y:auto;border-radius:12px;background:#fff;border:1px solid #EFD5D5}
+.list button{width:100%;text-align:left;padding:10px 12px;border-bottom:1px solid #F5E6E6;display:flex;justify-content:space-between;gap:8px}
+.list button.on{background:var(--pink)}
+.list button small{color:var(--muted)}
+.ingrow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.ingrow select{flex:1}
+.ingrow input{width:84px}
+.ingrow .x{color:var(--rose);font-size:22px;padding:0 6px}
+.photo-pick{width:100%;height:170px;border-radius:14px;background:var(--pink);display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font-size:16px}
+.photo-pick img{width:100%;height:100%;object-fit:cover}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--bordeaux);color:#fff;padding:10px 18px;border-radius:14px;font-size:15px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:60}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header id="header"></header>
+<main id="main"></main>
+<nav id="nav">
+  <button data-tab="suivi"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Suivi</button>
+  <button data-tab="recettes"><svg viewBox="0 0 24 24"><path d="M6 13a4 4 0 1 1 1.5-7.7A5 5 0 0 1 16.5 5.3 4 4 0 1 1 18 13v7H6z"/><path d="M6 16h12"/></svg>Recettes</button>
+  <button data-tab="batch"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M6 10h12M9 5v2M9 13v3"/></svg>Batch Cooking</button>
+  <button data-tab="profil"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg>Profil</button>
+</nav>
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ DONNÉES ============ */
+const MEALS=[{k:'pdj',l:'Petit-Déjeuner',t:'pdj'},{k:'dej',l:'Déjeuner',t:'repas'},{k:'col',l:'Collation',t:'collation'},{k:'din',l:'Diner',t:'repas'}];
+const MEAL_EXTRA={k:'col2',l:'Collation 2',t:'collation'};
+const TYPES=[{k:'pdj',l:'Petit-Déjeuner',em:'🥞'},{k:'collation',l:'Collation',em:'🍎'},{k:'repas',l:'Déjeuner/ Dîner',em:'🍲'}];
+const DIFF=['Facile','Moyen','Difficile'];
+const uid=()=>Math.random().toString(36).slice(2,10);
+const todayKey=()=>dkey(new Date());
+function dkey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fromKey(k){const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);}
+const JOURS=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+function fmtLong(k){const d=fromKey(k);return `${JOURS[d.getDay()]} ${d.getDate()} ${MOIS[d.getMonth()]} ${d.getFullYear()}`;}
+function fmtShort(k){const d=fromKey(k);return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;}
+const r0=n=>Math.round(n);
+const r1=n=>Math.round(n*10)/10;
+
+const SEED_ING=[
+ ['Riz blanc (cru)',360,7],['Pâtes (crues)',355,12.5],['Quinoa (cru)',368,14],['Semoule (crue)',360,12],['Pomme de terre',77,2],['Patate douce',86,1.6],['Lentilles (crues)',352,25],['Pois chiches (cuits)',164,9],['Haricots rouges (cuits)',127,8.7],
+ ['Blanc de poulet',110,23],['Escalope de dinde',105,24],['Bœuf haché 5%',137,21],['Steak de bœuf',150,26],['Saumon',208,20],['Cabillaud',82,18],['Thon en boîte (au naturel)',116,26],['Crevettes',99,24],['Œuf (entier)',143,12.5],['Jambon blanc',115,20],['Tofu',76,8],
+ ['Fromage blanc 0%',45,8],['Skyr',63,11],['Yaourt nature',60,4],['Lait demi-écrémé',46,3.3],['Emmental',380,29],['Feta',264,14],['Mozzarella',280,18],['Parmesan',392,36],
+ ['Flocons d\'avoine',375,13],['Pain complet',250,9],['Pain blanc',265,9],['Wrap / tortilla',310,8],['Muesli',370,10],['Whey (poudre)',380,78],
+ ['Banane',89,1.1],['Pomme',52,0.3],['Fraises',33,0.7],['Myrtilles',57,0.7],['Orange',47,0.9],['Compote sans sucre',60,0.3],
+ ['Brocoli',34,2.8],['Courgette',17,1.2],['Carotte',41,0.9],['Tomate',18,0.9],['Épinards',23,2.9],['Poivron',31,1],['Champignons',22,3.1],['Oignon',40,1.1],['Haricots verts',31,1.8],['Salade verte',15,1.4],['Avocat',160,2],
+ ['Huile d\'olive',884,0],['Beurre',717,0.9],['Crème fraîche 15%',170,2.6],['Sauce tomate',35,1.5],['Lait de coco',230,2.3],['Miel',304,0.3],['Chocolat noir 70%',598,8],['Amandes',579,21],['Beurre de cacahuète',588,25],['Sucre',400,0],['Farine de blé',364,10]
+];
+
+let S=null;
+function defaultState(){
+  return {
+    version:1, activeProfile:'p1', day:todayKey(),
+    profiles:[
+      {id:'p1',name:'Fanny',height:150,kcal:1370,prot:105,split:{pdj:25,dej:35,col:10,din:30},weights:[],photoId:null},
+      {id:'p2',name:'Matthieu',height:180,kcal:2400,prot:160,split:{pdj:25,dej:35,col:10,din:30},weights:[],photoId:null}
+    ],
+    ingredients:SEED_ING.map(([name,kcal,prot])=>({id:uid(),name,kcal,prot})),
+    recipes:[], batches:[], days:{}
+  };
+}
+function save(){localStorage.setItem('nosrepas_state',JSON.stringify(S));}
+function load(){try{const s=JSON.parse(localStorage.getItem('nosrepas_state'));if(s&&s.profiles)S=s;}catch(e){}if(!S)S=defaultState();}
+
+/* Photos dans IndexedDB */
+const photoCache={};
+let idb=null;
+function openDB(){return new Promise(res=>{const r=indexedDB.open('nosrepas',1);r.onupgradeneeded=()=>r.result.createObjectStore('photos');r.onsuccess=()=>{idb=r.result;res();};r.onerror=()=>res();});}
+function putPhoto(id,dataUrl){photoCache[id]=dataUrl;if(!idb)return;const tx=idb.transaction('photos','readwrite');tx.objectStore('photos').put(dataUrl,id);}
+function delPhoto(id){delete photoCache[id];if(!idb)return;idb.transaction('photos','readwrite').objectStore('photos').delete(id);}
+function loadPhotos(){return new Promise(res=>{if(!idb)return res();const st=idb.transaction('photos').objectStore('photos');const req=st.openCursor();req.onsuccess=()=>{const c=req.result;if(c){photoCache[c.key]=c.value;c.continue();}else res();};req.onerror=()=>res();});}
+function resizeImage(file,max=900){return new Promise(res=>{const img=new Image();const url=URL.createObjectURL(file);img.onload=()=>{let w=img.width,h=img.height;const s=Math.min(1,max/Math.max(w,h));w=r0(w*s);h=r0(h*s);const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res(c.toDataURL('image/jpeg',.8));};img.src=url;});}
+
+/* ============ CALCULS ============ */
+const prof=()=>S.profiles.find(p=>p.id===S.activeProfile)||S.profiles[0];
+const ingById=id=>S.ingredients.find(i=>i.id===id);
+const recById=id=>S.recipes.find(r=>r.id===id);
+function recipeTotals(r){let g=0,k=0,p=0;for(const it of r.ingredients){const ing=ingById(it.ingId);if(!ing)continue;g+=it.grams;k+=ing.kcal*it.grams/100;p+=ing.prot*it.grams/100;}return {g,kcal:k,prot:p,kcal100:g?k/g*100:0,prot100:g?p/g*100:0};}
+function mealShare(mealKey){const sp=prof().split;const key=mealKey==='col2'?'col':mealKey;return (sp[key]||0)/100;}
+/* portion (en g) du profil actif pour un repas et une recette */
+function portionG(recipe,mealKey,p=prof()){const t=recipeTotals(recipe);if(!t.kcal100)return 0;const target=p.kcal*mealShare(mealKey);return target/(t.kcal100/100);}
+function dayData(k=S.day,pid=S.activeProfile){S.days[k]=S.days[k]||{};S.days[k][pid]=S.days[k][pid]||{meals:{}};return S.days[k][pid];}
+function dayTotals(k=S.day,pid=S.activeProfile){const d=(S.days[k]||{})[pid];let kcal=0,prot=0;if(d)for(const m in d.meals)for(const it of d.meals[m]){kcal+=it.kcal;prot+=it.prot;}return {kcal,prot};}
+function mealTotals(items){let kcal=0,prot=0;for(const it of items||[]){kcal+=it.kcal;prot+=it.prot;}return {kcal,prot};}
+function dayHasEntries(k,pid){const d=(S.days[k]||{})[pid];return !!d&&Object.values(d.meals).some(a=>a.length);}
+function batchesFor(recipeId){return S.batches.filter(b=>b.recipeId===recipeId&&b.remainingG>5);}
+
+/* ============ UI GÉNÉRIQUE ============ */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tab='suivi', sub=null;
+function refocus(id){const el=document.getElementById(id);if(!el)return;el.focus();try{const n=el.value.length;el.setSelectionRange(n,n);}catch(e){}}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
+function openModal(html){$('#sheet').innerHTML=html;$('#modal').classList.add('open');}
+function closeModal(){$('#modal').classList.remove('open');}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;sub=null;render();});
+function setHeader(title,left,right){$('#header').innerHTML=`${left?`<button class="hbtn left" onclick="${left.fn}">${left.ic}</button>`:''}<h1>${title}</h1>${right?`<button class="hbtn right" onclick="${right.fn}">${right.ic}</button>`:''}`;}
+function render(){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));const m=$('#main');m.scrollTop=0;({suivi:renderSuivi,recettes:renderRecettes,batch:renderBatch,profil:renderProfil})[tab]();save();}
+function avatarHtml(p,size){const ph=p.photoId&&photoCache[p.photoId];return `<div class="avatar" style="${size?`width:${size}px;height:${size}px;font-size:${size/2.5}px`:''}">${ph?`<img src="${ph}">`:''}</div>`;}
+function profileBar(){return `<div class="profiles">${S.profiles.map(p=>`<button class="${p.id===S.activeProfile?'on':''}" onclick="setProfile('${p.id}')">${avatarHtml(p)}<span>${esc(p.name)}</span></button>`).join('')}<button onclick="editProfile()"><div class="avatar">+</div><span>Ajouter</span></button></div>`;}
+function setProfile(id){S.activeProfile=id;render();}
+function ringHtml(label,val,max,color){const r=64,c=2*Math.PI*r;const pct=Math.min(1,max?val/max:0);return `<div class="ring"><svg viewBox="0 0 150 150"><circle class="bg" cx="75" cy="75" r="${r}"/><circle class="fg" cx="75" cy="75" r="${r}" stroke="${color}" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-pct)}"/></svg><div>${label}:<br>${r0(val)}/${r0(max)} ${label==='Calories'?'kcal':'g'}<br><small class="muted">${r0(pct*100)} %</small></div></div>`;}
+
+/* ============ SUIVI ============ */
+function renderSuivi(){
+  if(sub==='cal')return renderCalendrier();
+  setHeader(fmtLong(S.day),{ic:'‹',fn:'shiftDay(-1)'},{ic:'›',fn:'shiftDay(1)'});
+  const p=prof(),tot=dayTotals(),d=dayData();
+  const meals=[...MEALS];if(d.meals.col2)meals.splice(3,0,MEAL_EXTRA);
+  $('#main').innerHTML=`${profileBar()}
+  <div class="band">Profil actif : ${esc(p.name)} (${p.kcal} Kcal)</div>
+  <div class="center" style="margin:-4px 0 8px"><button class="btn sm ghost" onclick="sub='cal';render()">📅 Calendrier & récap</button></div>
+  <div class="rings">${ringHtml('Calories',tot.kcal,p.kcal,'#722F35')}${ringHtml('Protéines',tot.prot,p.prot,'#C96A6F')}</div>
+  ${S.day!==todayKey()?`<div class="center" style="margin-bottom:10px"><button class="btn sm ghost" onclick="S.day=todayKey();render()">Revenir à aujourd'hui</button></div>`:''}
+  <div class="grid2">${meals.map(m=>mealCard(m,d.meals[m.k]||[])).join('')}</div>
+  ${d.meals.col2?'':`<button class="btn full rose" onclick="addExtraSnack()">+ Collation supplémentaire</button>`}`;
+}
+function shiftDay(n){const d=fromKey(S.day);d.setDate(d.getDate()+n);S.day=dkey(d);render();}
+function addExtraSnack(){dayData().meals.col2=[];render();}
+function mealCard(m,items){const t=mealTotals(items);
+  return `<div class="meal"><div class="mtitle">${m.l}<small>${r0(t.kcal)} kcal · ${r1(t.prot)} g prot</small></div>
+  <div class="items">${items.length?items.map((it,i)=>`<div class="item"><div class="n"><b>${esc(it.name)}</b><span>${r0(it.grams)} g · ${r0(it.kcal)} kcal · ${r1(it.prot)} g prot${it.batchId?' · batch':''}</span></div><button class="x" onclick="removeItem('${m.k}',${i})">×</button></div>`).join(''):'<div class="muted center" style="padding:6px">Rien pour le moment</div>'}</div>
+  <div class="adds"><button onclick="pickRecipe('${m.k}')">+ Recette</button><button class="alt" onclick="pickFood('${m.k}')">+ Aliment</button></div></div>`;}
+function removeItem(mk,i){const arr=dayData().meals[mk];const it=arr[i];if(it.batchId){const b=S.batches.find(b=>b.id===it.batchId);if(b)b.remainingG+=it.grams;}arr.splice(i,1);if(mk==='col2'&&!arr.length&&!confirm('Garder la collation 2 ?'))delete dayData().meals.col2;render();}
+
+/* --- ajouter une recette à un repas --- */
+let pick={};
+function pickRecipe(mk){const m=[...MEALS,MEAL_EXTRA].find(x=>x.k===mk);pick={mk,type:m.t,q:'',recipeId:null,mult:1,grams:null,batchId:null};renderPick();}
+function renderPick(){
+  const list=S.recipes.filter(r=>(!pick.q||r.name.toLowerCase().includes(pick.q)||r.ingredients.some(i=>(ingById(i.ingId)||{}).name?.toLowerCase().includes(pick.q)))).sort((a,b)=>(a.type===pick.type?0:1)-(b.type===pick.type?0:1)||(b.lastUsed||0)-(a.lastUsed||0));
+  const r=pick.recipeId&&recById(pick.recipeId);let detail='';
+  if(r){const t=recipeTotals(r);const pg=portionG(r,pick.mk);const g=pick.grams??pg*pick.mult;const bs=batchesFor(r.id);
+    detail=`<div class="card cream" style="margin-top:12px"><div style="font-size:18px">${esc(r.name)}</div><div class="muted">Ta portion (${r0(mealShare(pick.mk)*100)} % de ${prof().kcal} kcal) : <b>${r0(pg)} g</b> · ${r0(t.kcal100)} kcal / 100 g</div>
+    <label class="lbl">Nombre de portions</label><div class="chips">${[0.5,1,1.5,2].map(x=>`<button class="chip ${pick.grams==null&&pick.mult===x?'on':''}" onclick="pick.mult=${x};pick.grams=null;renderPick()">${x}</button>`).join('')}</div>
+    <label class="lbl">ou quantité exacte (g)</label><input type="number" inputmode="decimal" placeholder="grammes" value="${pick.grams??''}" onchange="pick.grams=this.value?+this.value:null;renderPick()">
+    ${bs.length?`<label class="lbl">Prendre dans un batch</label><div class="chips"><button class="chip ${!pick.batchId?'on':''}" onclick="pick.batchId=null;renderPick()">Non</button>${bs.map(b=>`<button class="chip ${pick.batchId===b.id?'on':''}" onclick="pick.batchId='${b.id}';renderPick()">Batch du ${fmtShort(b.date)} (${r0(b.remainingG)} g restants)</button>`).join('')}</div>`:''}
+    <div class="band sm" style="margin:14px 0 8px">${r0(g)} g → ${r0(g*t.kcal100/100)} kcal · ${r1(g*t.prot100/100)} g prot</div>
+    <button class="btn full" onclick="confirmPick()">Ajouter au repas</button></div>`;}
+  openModal(`<h2>Choisir une recette</h2><div class="search"><input type="search" id="pk-in" placeholder="Rechercher..." value="${esc(pick.q)}" oninput="pick.q=this.value.toLowerCase();renderPick();refocus('pk-in')"></div>
+  <div class="list">${list.length?list.map(x=>`<button class="${x.id===pick.recipeId?'on':''}" onclick="pick.recipeId='${x.id}';pick.grams=null;renderPick()"><span>${esc(x.name)}</span><small>${TYPES.find(t=>t.k===x.type)?.l||''}${batchesFor(x.id).length?' · 🧊':''}</small></button>`).join(''):'<div class="empty">Aucune recette. Crée-en dans l\'onglet Recettes.</div>'}</div>${detail}`);
+}
+function confirmPick(){const r=recById(pick.recipeId);const t=recipeTotals(r);const g=pick.grams??portionG(r,pick.mk)*pick.mult;if(!g)return;
+  if(pick.batchId){const b=S.batches.find(b=>b.id===pick.batchId);if(b){if(g>b.remainingG+1&&!confirm(`Il ne reste que ${r0(b.remainingG)} g dans ce batch. Continuer ?`))return;b.remainingG=Math.max(0,b.remainingG-g);}}
+  const arr=dayData().meals[pick.mk]=dayData().meals[pick.mk]||[];
+  arr.push({kind:'recipe',recipeId:r.id,name:r.name,grams:g,kcal:g*t.kcal100/100,prot:g*t.prot100/100,batchId:pick.batchId});
+  r.usageCount=(r.usageCount||0)+1;r.lastUsed=Date.now();closeModal();render();toast('Ajouté');}
+
+/* --- ajouter un aliment simple --- */
+function pickFood(mk){pick={mk,q:'',ingId:null,grams:100,newName:'',newK:'',newP:''};renderFood();}
+function renderFood(){const list=S.ingredients.filter(i=>!pick.q||i.name.toLowerCase().includes(pick.q)).sort((a,b)=>a.name.localeCompare(b.name));const ing=pick.ingId&&ingById(pick.ingId);
+  openModal(`<h2>Ajouter un aliment</h2><div class="search"><input type="search" id="fd-in" placeholder="Rechercher un ingrédient..." value="${esc(pick.q)}" oninput="pick.q=this.value.toLowerCase();renderFood();refocus('fd-in')"></div>
+  <div class="list">${list.map(i=>`<button class="${i.id===pick.ingId?'on':''}" onclick="pick.ingId='${i.id}';renderFood()"><span>${esc(i.name)}</span><small>${i.kcal} kcal · ${i.prot} g / 100 g</small></button>`).join('')}</div>
+  ${ing?`<div class="card cream" style="margin-top:12px"><div style="font-size:18px">${esc(ing.name)}</div><label class="lbl">Quantité (g)</label><input type="number" inputmode="decimal" value="${pick.grams}" onchange="pick.grams=+this.value;renderFood()">
+  <div class="band sm" style="margin:14px 0 8px">${r0(pick.grams)} g → ${r0(ing.kcal*pick.grams/100)} kcal · ${r1(ing.prot*pick.grams/100)} g prot</div><button class="btn full" onclick="confirmFood()">Ajouter au repas</button></div>`:
+  `<details style="margin-top:12px"><summary class="muted">Ingrédient introuvable ? En créer un</summary>${newIngForm('renderFood')}</details>`}`);}
+function newIngForm(back){return `<label class="lbl">Nom</label><input type="text" id="ni-name" value="${esc(pick.newName)}"><div class="grid2"><div><label class="lbl">kcal / 100 g</label><input type="number" inputmode="decimal" id="ni-k" value="${pick.newK}"></div><div><label class="lbl">Protéines g / 100 g</label><input type="number" inputmode="decimal" id="ni-p" value="${pick.newP}"></div></div><button class="btn full rose" style="margin-top:10px" onclick="createIng('${back}')">Créer l'ingrédient</button>`;}
+function createIng(back){const name=$('#ni-name').value.trim(),k=+$('#ni-k').value,p=+$('#ni-p').value;if(!name)return toast('Nom manquant');const ing={id:uid(),name,kcal:k,prot:p};S.ingredients.push(ing);save();if(back==='renderFood'){pick.ingId=ing.id;pick.q='';renderFood();}else if(back==='renderEditor'){ed.ingredients.push({ingId:ing.id,grams:100});ed.showNew=false;renderEditor();}else{sub='ing';render();}toast('Ingrédient créé');}
+function confirmFood(){const ing=ingById(pick.ingId);const g=+pick.grams||0;if(!g)return;const arr=dayData().meals[pick.mk]=dayData().meals[pick.mk]||[];arr.push({kind:'food',ingId:ing.id,name:ing.name,grams:g,kcal:ing.kcal*g/100,prot:ing.prot*g/100});closeModal();render();toast('Ajouté');}
+
+/* ============ CALENDRIER ============ */
+let calMonth=null;
+function renderCalendrier(){
+  setHeader('Calendrier',{ic:'←',fn:"sub=null;render()"});
+  const p=prof();if(!calMonth){const d=fromKey(S.day);calMonth={y:d.getFullYear(),m:d.getMonth()};}
+  const first=new Date(calMonth.y,calMonth.m,1);const start=(first.getDay()+6)%7;const nd=new Date(calMonth.y,calMonth.m+1,0).getDate();
+  let cells='';for(let i=0;i<start;i++)cells+='<div class="d"></div>';
+  for(let d=1;d<=nd;d++){const k=dkey(new Date(calMonth.y,calMonth.m,d));cells+=`<div class="d ${k===S.day?'sel':''} ${k===todayKey()?'today':''} ${dayHasEntries(k,p.id)?'has':''}" onclick="S.day='${k}';render()"><span>${d}</span></div>`;}
+  const tot=dayTotals(),d=dayData();const meals=[...MEALS];if(d.meals.col2)meals.splice(3,0,MEAL_EXTRA);
+  const bar=(v,max,cls)=>`<div class="bar ${cls}">${Array.from({length:10},(_,i)=>`<i class="${v/max*10>i+.5?'f':''}"></i>`).join('')}</div>`;
+  $('#main').innerHTML=`<div class="cal"><div class="mh"><button onclick="calShift(-1)">‹</button><span>${MOIS[calMonth.m]} ${calMonth.y}</span><button onclick="calShift(1)">›</button></div>
+  <div class="g">${['L','M','M','J','V','S','D'].map(h=>`<div class="h">${h}</div>`).join('')}${cells}</div></div>
+  <h2 class="center" style="font-size:26px;margin:10px 0">${fmtLong(S.day)}</h2>
+  <div class="card"><div class="band sm" style="margin:0 0 10px;text-align:left">📊 Récapitulatif du jour — ${esc(p.name)}</div>
+  <div style="font-size:20px">Calories : ${r0(tot.kcal)} / ${p.kcal} kcal</div>${bar(tot.kcal,p.kcal,'')}
+  <div style="font-size:20px">Protéines : ${r1(tot.prot)} / ${p.prot} g</div>${bar(tot.prot,p.prot,'p')}
+  ${meals.map(m=>{const items=d.meals[m.k]||[];const t=mealTotals(items);return `<div style="font-size:19px;margin-top:8px">${m.l} (${r0(t.kcal)} Kcal)</div>${items.length?items.map(it=>`<div class="recap-line"><span>${esc(it.name)} · ${r0(it.grams)} g</span><span>${r0(it.kcal)} kcal · ${r1(it.prot)} g</span></div>`).join(''):'<div class="recap-line"><span>—</span></div>'}`;}).join('')}
+  <button class="btn full" style="margin-top:14px" onclick="sub=null;render()">Modifier cette journée</button></div>`;
+}
+function calShift(n){let m=calMonth.m+n,y=calMonth.y;if(m<0){m=11;y--;}if(m>11){m=0;y++;}calMonth={y,m};render();}
+
+/* ============ RECETTES ============ */
+let rq='',rtype=null,openDetail=null;
+function renderRecettes(){
+  if(sub==='ing')return renderIngredients();
+  if(sub==='edit')return renderEditor();
+  setHeader(fmtLong(todayKey()),null,{ic:'🥕',fn:"sub='ing';render()"});
+  let html=`<div class="search"><input type="search" id="rq-in" placeholder="Rechercher une recette..." value="${esc(rq)}" oninput="rq=this.value.toLowerCase();renderRecettes();refocus('rq-in')"><span>🔍</span></div>
+  <button class="btn full" style="margin-bottom:12px" onclick="newRecipe()">+ Nouvelle recette</button>`;
+  if(rq||rtype){const list=S.recipes.filter(r=>(!rtype||r.type===rtype)&&(!rq||r.name.toLowerCase().includes(rq)||r.ingredients.some(i=>(ingById(i.ingId)||{}).name?.toLowerCase().includes(rq))));
+    html+=`<div class="band">${rtype?TYPES.find(t=>t.k===rtype).l:'Résultats'} ${rtype?`<button style="color:#fff;margin-left:8px" onclick="rtype=null;renderRecettes()">×</button>`:''}</div>${list.length?list.map(recipeCard).join(''):'<div class="empty">Aucune recette</div>'}`;}
+  else{const fav=[...S.recipes].filter(r=>r.lastUsed).sort((a,b)=>(b.lastUsed||0)-(a.lastUsed||0)||(b.usageCount||0)-(a.usageCount||0)).slice(0,3);
+    html+=`<div class="band">Nos recettes vedettes</div>${fav.length?fav.map(recipeCard).join(''):'<div class="empty">Les recettes les plus utilisées apparaîtront ici</div>'}
+    <div class="band">Recettes par Type de Repas</div>${TYPES.map(t=>`<div class="typecard" onclick="rtype='${t.k}';renderRecettes()">${t.l}<div class="em">${t.em}</div><div class="muted">${S.recipes.filter(r=>r.type===t.k).length} recette(s)</div></div>`).join('')}`;}
+  $('#main').innerHTML=html;
+}
+function recipeCard(r,mode){const t=recipeTotals(r);const ph=r.photoId&&photoCache[r.photoId];const keys=r.ingredients.slice(0,3).map(i=>(ingById(i.ingId)||{}).name).filter(Boolean).join(', ');
+  return `<div class="rcard" onclick="openDetail=openDetail==='${r.id}'?null:'${r.id}';${mode==='batch'?'renderBatch()':'renderRecettes()'}"><div class="ph">${ph?`<img src="${ph}">`:TYPES.find(x=>x.k===r.type)?.em||'🍽'}</div>
+  <div class="info"><h3>${esc(r.name)}</h3><div>${r.time?r.time+' min':'—'} | ${r.difficulty||'—'} | ${r0(t.kcal100)} kcal/100 g</div><div class="muted">Ingrédients clés : ${esc(keys)||'—'}</div><div class="see">Voir recette ${openDetail===r.id?'▲':'▼'}</div></div></div>${openDetail===r.id?recipeDetail(r):''}`;}
+function recipeDetail(r){const t=recipeTotals(r);const p=prof();
+  return `<div class="detail"><table>${r.ingredients.map(i=>{const ing=ingById(i.ingId);return ing?`<tr><td>${esc(ing.name)}</td><td>${i.grams} g · ${r0(ing.kcal*i.grams/100)} kcal · ${r1(ing.prot*i.grams/100)} g prot</td></tr>`:'';}).join('')}</table>
+  <div style="margin:8px 0"><b>Plat entier :</b> ${r0(t.g)} g · ${r0(t.kcal)} kcal · ${r1(t.prot)} g prot</div>
+  <div class="muted">Portions pour ${esc(p.name)} : ${MEALS.map(m=>`${m.l.split('-')[0]} ${r0(portionG(r,m.k,p))} g`).join(' · ')}</div>
+  ${r.steps?`<div style="margin-top:8px;white-space:pre-wrap">${esc(r.steps)}</div>`:''}
+  <div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn sm" onclick="event.stopPropagation();editRecipe('${r.id}')">✎ Modifier</button><button class="btn sm rose" onclick="event.stopPropagation();newBatch('${r.id}')">🧊 Préparer en batch</button><button class="btn sm ghost" onclick="event.stopPropagation();delRecipe('${r.id}')">Supprimer</button></div></div>`;}
+function delRecipe(id){if(!confirm('Supprimer cette recette ?'))return;const r=recById(id);if(r.photoId)delPhoto(r.photoId);S.recipes=S.recipes.filter(x=>x.id!==id);render();}
+
+/* --- éditeur --- */
+let ed=null;
+function newRecipe(){ed={id:null,name:'',type:'repas',time:'',difficulty:'Facile',photo:null,ingredients:[],steps:'',showNew:false};sub='edit';render();}
+function editRecipe(id){const r=recById(id);ed={...r,photo:r.photoId?photoCache[r.photoId]:null,ingredients:r.ingredients.map(i=>({...i})),showNew:false};sub='edit';render();}
+function renderEditor(){
+  setHeader(ed.id?'Modifier la recette':'Nouvelle recette',{ic:'←',fn:"sub=null;render()"});
+  const opts=[...S.ingredients].sort((a,b)=>a.name.localeCompare(b.name));const t=recipeTotals(ed);
+  $('#main').innerHTML=`<label class="photo-pick" for="ph-in">${ed.photo?`<img src="${ed.photo}">`:'📷 Ajouter une photo (galerie / appareil)'}</label><input type="file" id="ph-in" accept="image/*" style="display:none" onchange="edPhoto(this)">
+  <label class="lbl">Nom</label><input type="text" value="${esc(ed.name)}" oninput="ed.name=this.value">
+  <label class="lbl">Type de repas</label><div class="chips">${TYPES.map(x=>`<button class="chip ${ed.type===x.k?'on':''}" onclick="ed.type='${x.k}';renderEditor()">${x.em} ${x.l}</button>`).join('')}</div>
+  <div class="grid2"><div><label class="lbl">Temps (min)</label><input type="number" inputmode="numeric" value="${ed.time}" oninput="ed.time=this.value"></div><div><label class="lbl">Difficulté</label><select onchange="ed.difficulty=this.value">${DIFF.map(x=>`<option ${ed.difficulty===x?'selected':''}>${x}</option>`).join('')}</select></div></div>
+  <label class="lbl">Ingrédients du plat entier (quantités crues en g)</label>
+  ${ed.ingredients.map((i,idx)=>`<div class="ingrow"><select onchange="ed.ingredients[${idx}].ingId=this.value;renderEditor()"><option value="">— choisir —</option>${opts.map(o=>`<option value="${o.id}" ${o.id===i.ingId?'selected':''}>${esc(o.name)}</option>`).join('')}</select><input type="number" inputmode="decimal" value="${i.grams}" placeholder="g" onchange="ed.ingredients[${idx}].grams=+this.value;renderEditor()"><button class="x" onclick="ed.ingredients.splice(${idx},1);renderEditor()">×</button></div>`).join('')}
+  <div class="row"><button class="btn sm rose" onclick="ed.ingredients.push({ingId:'',grams:100});renderEditor()">+ Ingrédient</button><button class="btn sm ghost" onclick="ed.showNew=!ed.showNew;renderEditor()">Nouvel ingrédient (table)</button></div>
+  ${ed.showNew?`<div class="card cream" style="margin-top:10px">${newIngForm('renderEditor')}</div>`:''}
+  <div class="band sm">Plat entier : ${r0(t.g)} g · ${r0(t.kcal)} kcal · ${r1(t.prot)} g prot</div>
+  <label class="lbl">Préparation (optionnel)</label><textarea oninput="ed.steps=this.value">${esc(ed.steps)}</textarea>
+  <button class="btn full" style="margin-top:16px" onclick="saveRecipe()">Enregistrer</button>`;
+}
+async function edPhoto(inp){const f=inp.files[0];if(!f)return;ed.photo=await resizeImage(f);renderEditor();}
+function saveRecipe(){if(!ed.name.trim())return toast('Donne un nom à la recette');const ings=ed.ingredients.filter(i=>i.ingId&&i.grams>0);if(!ings.length)return toast('Ajoute au moins un ingrédient');
+  let r=ed.id?recById(ed.id):null;if(!r){r={id:uid(),usageCount:0,lastUsed:0};S.recipes.push(r);}
+  Object.assign(r,{name:ed.name.trim(),type:ed.type,time:ed.time,difficulty:ed.difficulty,ingredients:ings,steps:ed.steps});
+  if(ed.photo&&ed.photo!==(r.photoId&&photoCache[r.photoId])){if(r.photoId)delPhoto(r.photoId);r.photoId=uid();putPhoto(r.photoId,ed.photo);}
+  sub=null;openDetail=r.id;render();toast('Recette enregistrée');}
+
+/* --- table ingrédients --- */
+let iq='';
+function renderIngredients(){setHeader('Table des ingrédients',{ic:'←',fn:"sub=null;render()"});const list=S.ingredients.filter(i=>!iq||i.name.toLowerCase().includes(iq)).sort((a,b)=>a.name.localeCompare(b.name));
+  $('#main').innerHTML=`<div class="search"><input type="search" id="iq-in" placeholder="Rechercher..." value="${esc(iq)}" oninput="iq=this.value.toLowerCase();renderIngredients();refocus('iq-in')"></div>
+  <div class="card cream"><div class="muted">Valeurs pour 100 g, servent de référence à toutes les recettes.</div>${(pick={newName:'',newK:'',newP:''},newIngForm('ing'))}</div>
+  ${list.map(i=>`<div class="item"><div class="n"><b>${esc(i.name)}</b><span>${i.kcal} kcal · ${i.prot} g prot / 100 g</span></div><button class="btn sm ghost" onclick="editIng('${i.id}')">✎</button><button class="x" onclick="delIng('${i.id}')">×</button></div>`).join('')}`;}
+function editIng(id){const i=ingById(id);const n=prompt('Nom',i.name);if(n===null)return;const k=prompt('kcal / 100 g',i.kcal);if(k===null)return;const p=prompt('Protéines g / 100 g',i.prot);if(p===null)return;Object.assign(i,{name:n.trim()||i.name,kcal:+k,prot:+p});render();}
+function delIng(id){const used=S.recipes.some(r=>r.ingredients.some(i=>i.ingId===id));if(used)return toast('Utilisé dans une recette, impossible de supprimer');if(confirm('Supprimer cet ingrédient ?')){S.ingredients=S.ingredients.filter(i=>i.id!==id);render();}}
+
+/* ============ BATCH COOKING ============ */
+let bq='',btype=null;
+function renderBatch(){setHeader(fmtLong(todayKey()));const p=prof();
+  const list=S.batches.filter(b=>{const r=recById(b.recipeId);return r&&(!btype||r.type===btype)&&(!bq||r.name.toLowerCase().includes(bq));}).sort((a,b)=>b.date.localeCompare(a.date));
+  const card=b=>{const r=recById(b.recipeId);const t=recipeTotals(r);const ph=r.photoId&&photoCache[r.photoId];const pg=portionG(r,r.type==='pdj'?'pdj':r.type==='collation'?'col':'dej',p);const parts=pg?b.remainingG/pg:0;const keys=r.ingredients.slice(0,3).map(i=>(ingById(i.ingId)||{}).name).filter(Boolean).join(', ');
+    return `<div class="rcard" onclick="openDetail=openDetail==='b${b.id}'?null:'b${b.id}';renderBatch()"><div class="ph">${ph?`<img src="${ph}">`:TYPES.find(x=>x.k===r.type)?.em}</div><div class="info"><h3>${esc(r.name)}</h3><div>Type : ${TYPES.find(x=>x.k===r.type)?.l} | Batch du ${fmtShort(b.date)}</div><div><b>${r1(parts)} portion(s)</b> pour ${esc(p.name)} · ${r0(b.remainingG)} g restants ${b.remainingG<=5?'<span class="tag">vide</span>':''}</div><div class="muted">Ingrédients : ${esc(keys)}</div><div class="see">Voir Détails ${openDetail==='b'+b.id?'▲':'▼'}</div></div></div>
+    ${openDetail==='b'+b.id?`<div class="detail"><div>Préparé le ${fmtLong(b.date)} · ${r0(b.initialG)} g au départ (${r0(b.initialG*t.kcal100/100)} kcal)</div><div>Consommé : ${r0(b.initialG-b.remainingG)} g</div><div class="muted">1 portion ${esc(p.name)} = ${r0(pg)} g (${r0(pg*t.kcal100/100)} kcal · ${r1(pg*t.prot100/100)} g prot)</div>
+    <div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn sm" onclick="event.stopPropagation();S.day=todayKey();tab='suivi';sub=null;render();pickRecipe('${r.type==='pdj'?'pdj':r.type==='collation'?'col':'dej'}');pick.recipeId='${r.id}';pick.batchId='${b.id}';renderPick()">Manger une portion aujourd'hui</button><button class="btn sm rose" onclick="event.stopPropagation();adjustBatch('${b.id}')">Ajuster le reste</button><button class="btn sm ghost" onclick="event.stopPropagation();if(confirm('Supprimer ce batch ?')){S.batches=S.batches.filter(x=>x.id!=='${b.id}');render();}">Supprimer</button></div></div>`:''}`;};
+  $('#main').innerHTML=`<div class="search"><input type="search" id="bq-in" placeholder="Rechercher un plat..." value="${esc(bq)}" oninput="bq=this.value.toLowerCase();renderBatch();refocus('bq-in')"><span>🔍</span></div>
+  <button class="btn full" style="margin-bottom:12px" onclick="newBatch()">+ Nouveau batch</button>
+  <div class="band">Mes plats préparés (Frigo et congés)${btype?` — ${TYPES.find(t=>t.k===btype).l} <button style="color:#fff" onclick="btype=null;renderBatch()">×</button>`:''}</div>
+  ${list.length?list.map(card).join(''):'<div class="empty">Aucun plat préparé. Lance un batch depuis une recette.</div>'}
+  <div class="band">Inventaire par Type de Repas</div>${TYPES.map(t=>{const n=S.batches.filter(b=>{const r=recById(b.recipeId);return r&&r.type===t.k&&b.remainingG>5;}).length;return `<div class="typecard" onclick="btype='${t.k}';renderBatch()">${t.l}<div class="em">${t.em}</div><div class="muted">${n} plat(s) en stock</div></div>`;}).join('')}`;}
+function newBatch(recipeId){pick={recipeId:recipeId||null,mult:1,q:'',date:todayKey()};renderNewBatch();}
+function renderNewBatch(){const list=S.recipes.filter(r=>!pick.q||r.name.toLowerCase().includes(pick.q)).sort((a,b)=>a.name.localeCompare(b.name));const r=pick.recipeId&&recById(pick.recipeId);const t=r&&recipeTotals(r);
+  openModal(`<h2>Préparer un batch</h2><div class="search"><input type="search" id="nb-in" placeholder="Recette..." value="${esc(pick.q)}" oninput="pick.q=this.value.toLowerCase();renderNewBatch();refocus('nb-in')"></div>
+  <div class="list">${list.map(x=>`<button class="${x.id===pick.recipeId?'on':''}" onclick="pick.recipeId='${x.id}';renderNewBatch()"><span>${esc(x.name)}</span><small>${r0(recipeTotals(x).g)} g</small></button>`).join('')||'<div class="empty">Aucune recette</div>'}</div>
+  ${r?`<div class="card cream" style="margin-top:12px"><label class="lbl">Combien de fois la recette ?</label><div class="chips">${[1,2,3,4].map(x=>`<button class="chip ${pick.mult===x?'on':''}" onclick="pick.mult=${x};renderNewBatch()">×${x}</button>`).join('')}</div>
+  <label class="lbl">Date de préparation</label><input type="date" value="${pick.date}" onchange="pick.date=this.value">
+  <div class="band sm" style="margin:14px 0 8px">${r0(t.g*pick.mult)} g · ${r0(t.kcal*pick.mult)} kcal · ≈ ${r1(t.g*pick.mult/(portionG(r,'dej')||1))} portions ${esc(prof().name)}</div><button class="btn full" onclick="confirmBatch()">Mettre au frigo / congé</button></div>`:''}`);}
+function confirmBatch(){const r=recById(pick.recipeId);const t=recipeTotals(r);S.batches.push({id:uid(),recipeId:r.id,date:pick.date||todayKey(),initialG:t.g*pick.mult,remainingG:t.g*pick.mult});closeModal();tab='batch';sub=null;render();toast('Batch enregistré');}
+function adjustBatch(id){const b=S.batches.find(x=>x.id===id);const v=prompt('Grammes restants',r0(b.remainingG));if(v===null)return;b.remainingG=Math.max(0,+v);render();}
+
+/* ============ PROFIL ============ */
+function renderProfil(){const p=prof();
+  setHeader(`Mon Profil - ${esc(p.name)} (${p.height||'?'}cm)`,null,{ic:'✎',fn:`editProfile('${p.id}')`});
+  const ws=[...p.weights].sort((a,b)=>a.date.localeCompare(b.date));const last=ws[ws.length-1];
+  $('#main').innerHTML=`${profileBar()}<div class="band">Mon Poids et suivi</div>
+  <div class="card cream"><div class="weightbox"><div style="text-align:center"><div class="big">${last?r1(last.kg):'....'} <span style="font-size:32px">kg</span></div><div style="font-size:18px;margin:6px 0">Dernière mesure:<br>${last?fmtShort(last.date)+'/'+last.date.slice(0,4):'../../....'}</div><button class="btn" onclick="addWeight()">✎ Ajouter</button></div><div class="chart"><div class="center" style="font-size:14px">Tendance (4 mois)</div>${weightChart(ws)}</div></div>
+  ${ws.length?`<details style="margin-top:8px"><summary class="muted">Historique (${ws.length})</summary>${ws.slice().reverse().map((w,i)=>`<div class="recap-line"><span>${fmtShort(w.date)}/${w.date.slice(0,4)}</span><span>${r1(w.kg)} kg <button class="x" style="color:var(--rose)" onclick="delWeight('${w.date}')">×</button></span></div>`).join('')}</details>`:''}</div>
+  <div class="band">Mon objectif Calorique</div>
+  <div class="card" style="padding:0;overflow:hidden"><div class="row" style="padding:22px 18px"><div class="bigkcal grow">${p.kcal} kcal</div><button class="btn" onclick="editProfile('${p.id}')">✎ Modifier</button></div><div class="dark center" style="padding:14px;font-size:22px">Protéines ciblées : ${p.prot} g</div></div>
+  <div class="card cream"><div style="font-size:18px;margin-bottom:6px">Répartition des repas</div><div class="muted">Sert à calculer « ta portion » pour chaque repas.</div>
+  <div class="grid2" style="margin-top:8px">${MEALS.map(m=>`<div class="recap-line"><span>${m.l}</span><span>${p.split[m.k]} % · ${r0(p.kcal*p.split[m.k]/100)} kcal</span></div>`).join('')}</div>
+  <div class="muted" style="margin-top:6px">${Object.values(p.split).reduce((a,b)=>a+b,0)!==100?'⚠️ Le total ne fait pas 100 %':'La collation 2 utilise la part Collation.'}</div></div>`;}
+function weightChart(ws){const lim=new Date();lim.setMonth(lim.getMonth()-4);const pts=ws.filter(w=>fromKey(w.date)>=lim);if(pts.length<1)return '<div class="empty">Ajoute une pesée pour voir la courbe</div>';
+  const W=320,H=180,L=34,B=22,T=10;const t0=fromKey(pts[0].date).getTime(),t1=Math.max(fromKey(pts[pts.length-1].date).getTime(),t0+864e5);let mn=Math.floor(Math.min(...pts.map(p=>p.kg))-1),mx=Math.ceil(Math.max(...pts.map(p=>p.kg))+1);
+  const X=t=>L+(t-t0)/(t1-t0)*(W-L-8),Y=v=>T+(mx-v)/(mx-mn)*(H-T-B);let grid='';for(let v=mn;v<=mx;v++)grid+=`<line x1="${L}" x2="${W}" y1="${Y(v)}" y2="${Y(v)}" stroke="#ddd"/><text x="${L-4}" y="${Y(v)+4}" font-size="9" text-anchor="end" fill="#722F35">${v}</text>`;
+  const d=pts.map((p,i)=>(i?'L':'M')+X(fromKey(p.date).getTime())+','+Y(p.kg)).join(' ');
+  const labels=[pts[0],pts[pts.length-1]].map(p=>`<text x="${X(fromKey(p.date).getTime())}" y="${H-6}" font-size="9" text-anchor="middle" fill="#722F35">${fmtShort(p.date)}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}"><line x1="${L}" x2="${L}" y1="${T}" y2="${H-B}" stroke="#722F35" stroke-width="2"/>${grid}<path d="${d}" fill="none" stroke="#722F35" stroke-width="2"/>${pts.map(p=>`<circle cx="${X(fromKey(p.date).getTime())}" cy="${Y(p.kg)}" r="3.5" fill="#722F35"/>`).join('')}${labels}</svg>`;}
+function addWeight(){pick={date:todayKey(),kg:''};openModal(`<h2>Nouvelle pesée</h2><label class="lbl">Date</label><input type="date" value="${pick.date}" onchange="pick.date=this.value"><label class="lbl">Poids (kg)</label><input type="number" inputmode="decimal" step="0.1" placeholder="ex. 54.3" onchange="pick.kg=this.value"><button class="btn full" style="margin-top:16px" onclick="confirmWeight()">Enregistrer</button>`);}
+function confirmWeight(){const kg=+pick.kg;if(!kg)return toast('Poids manquant');const p=prof();p.weights=p.weights.filter(w=>w.date!==pick.date);p.weights.push({date:pick.date,kg});closeModal();render();}
+function delWeight(date){const p=prof();p.weights=p.weights.filter(w=>w.date!==date);render();}
+function editProfile(id){const p=id?S.profiles.find(x=>x.id===id):{id:null,name:'',height:'',kcal:2000,prot:120,split:{pdj:25,dej:35,col:10,din:30},weights:[],photoId:null};pick={...p,split:{...p.split},photo:p.photoId?photoCache[p.photoId]:null};renderProfileForm();}
+function renderProfileForm(){openModal(`<h2>${pick.id?'Modifier le profil':'Nouveau profil'}</h2>
+  <label class="photo-pick" for="pp-in" style="height:120px">${pick.photo?`<img src="${pick.photo}">`:'📷 Photo de profil (optionnel)'}</label><input type="file" id="pp-in" accept="image/*" style="display:none" onchange="ppPhoto(this)">
+  <label class="lbl">Prénom</label><input type="text" value="${esc(pick.name)}" oninput="pick.name=this.value">
+  <label class="lbl">Taille (cm)</label><input type="number" inputmode="numeric" value="${pick.height}" oninput="pick.height=+this.value">
+  <div class="grid2"><div><label class="lbl">Objectif kcal / jour</label><input type="number" inputmode="numeric" value="${pick.kcal}" oninput="pick.kcal=+this.value"></div><div><label class="lbl">Protéines pures / jour (g)</label><input type="number" inputmode="numeric" value="${pick.prot}" oninput="pick.prot=+this.value"></div></div>
+  <label class="lbl">Répartition des repas (%)</label><div class="grid2">${MEALS.map(m=>`<div><span class="muted">${m.l}</span><input type="number" inputmode="numeric" value="${pick.split[m.k]}" oninput="pick.split.${m.k}=+this.value"></div>`).join('')}</div>
+  <button class="btn full" style="margin-top:16px" onclick="saveProfile()">Enregistrer</button>${pick.id&&S.profiles.length>1?`<button class="btn full ghost" style="margin-top:8px" onclick="delProfile('${pick.id}')">Supprimer ce profil</button>`:''}`);}
+async function ppPhoto(inp){const f=inp.files[0];if(!f)return;pick.photo=await resizeImage(f,300);renderProfileForm();}
+function saveProfile(){if(!pick.name.trim())return toast('Prénom manquant');let p=pick.id?S.profiles.find(x=>x.id===pick.id):null;if(!p){p={id:uid(),weights:[],photoId:null};S.profiles.push(p);S.activeProfile=p.id;}
+  Object.assign(p,{name:pick.name.trim(),height:pick.height,kcal:pick.kcal,prot:pick.prot,split:pick.split});if(pick.photo&&pick.photo!==(p.photoId&&photoCache[p.photoId])){if(p.photoId)delPhoto(p.photoId);p.photoId=uid();putPhoto(p.photoId,pick.photo);}closeModal();render();}
+function delProfile(id){if(!confirm('Supprimer ce profil et son suivi ?'))return;S.profiles=S.profiles.filter(p=>p.id!==id);for(const k in S.days)delete S.days[k][id];S.activeProfile=S.profiles[0].id;closeModal();render();}
+
+/* ============ INIT ============ */
+(async()=>{load();S.day=todayKey();await openDB();await loadPhotos();render();})();
+</script>
+</body>
+</html>

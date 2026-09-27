@@ -1,0 +1,12 @@
+{
+  "appId": "fr.matthieu.nosrepas",
+  "appName": "Nos Repas",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#FDF8F5"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
