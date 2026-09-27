@@ -29,9 +29,25 @@ et « Ajouter à l'écran d'accueil ».
   (petit-déj 25 %, déjeuner 35 %, collation 10 %, dîner 30 %, modifiable).
 - « Ta portion » = la quantité du plat qui couvre la part du repas dans l'objectif du profil.
 - Dans le suivi : choix de la recette → 0.5 / 1 / 1.5 / 2 portions ou grammes exacts.
+- La portion est détaillée **ingrédient par ingrédient** (grammes crus à peser). Les ingrédients
+  qui se comptent (œufs, fruits, wraps…) ont une unité et un poids unitaire : la portion tombe
+  sur un nombre entier (ex. « 2 œufs »), et les kcal/protéines notées correspondent à ces quantités.
+- Un repas peut dépasser son objectif : il est noté quand même, la barre du repas est pleine et
+  l'excédent s'affiche (+X kcal).
+- « Ajouter aussi la portion de… » note le même plat pour l'autre profil, avec sa propre portion.
 - Si la recette a un batch en stock, on peut y piocher : les grammes sont décomptés
   (et rendus si on supprime la ligne).
 
 ## Profils au premier lancement
 
 Fanny (150 cm, 1370 kcal, 105 g) et Matthieu (valeurs à ajuster dans Profil > ✎).
+
+## Icône et écran de démarrage
+
+La toque rose (même dessin que l'onglet Recettes) est dans `resources/android/res`, copiée dans le
+projet Android par le workflow. Pour la régénérer : `python3 resources/generate_icons.py`.
+
+## Bouton retour Android
+
+Géré par `@capacitor/app` : il ferme la fenêtre ouverte, puis revient à l'écran / l'onglet
+précédent ; sur l'écran d'accueil il met l'app en arrière-plan au lieu de la fermer.

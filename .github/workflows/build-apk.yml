@@ -29,6 +29,9 @@ jobs:
       - name: Créer le projet Android
         run: npx cap add android
 
+      - name: Mettre l'icône et l'écran de démarrage Nos Repas
+        run: cp -r resources/android/res/. android/app/src/main/res/
+
       - name: Copier l'app dans le projet Android
         run: npx cap sync android
 
