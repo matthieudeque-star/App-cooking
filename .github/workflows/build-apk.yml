@@ -1,0 +1,51 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Installer le SDK Android
+        uses: android-actions/setup-android@v3
+
+      - name: Installer Capacitor
+        run: npm install
+
+      - name: Créer le projet Android
+        run: npx cap add android
+
+      - name: Copier l'app dans le projet Android
+        run: npx cap sync android
+
+      - name: Compiler l'APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Renommer l'APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk nos-repas.apk
+
+      - name: Mettre l'APK à disposition
+        uses: actions/upload-artifact@v4
+        with:
+          name: nos-repas-apk
+          path: nos-repas.apk
