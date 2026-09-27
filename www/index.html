@@ -241,13 +241,12 @@ const recById=id=>S.recipes.find(r=>r.id===id);
 function recipeTotals(r){let g=0,k=0,p=0;for(const it of r.ingredients){const ing=ingById(it.ingId);if(!ing)continue;g+=it.grams;k+=ing.kcal*it.grams/100;p+=ing.prot*it.grams/100;}return {g,kcal:k,prot:p,kcal100:g?k/g*100:0,prot100:g?p/g*100:0};}
 function mealShare(mealKey){const sp=prof().split;const key=mealKey==='col2'?'col':mealKey;return (sp[key]||0)/100;}
 /* portion (en g) du profil actif pour un repas et une recette */
-function portionG(recipe,mealKey,p=prof()){const t=recipeTotals(recipe);if(!t.kcal100)return 0;const target=p.kcal*mealShare(mealKey);return target/(t.kcal100/100);}
 function dayData(k=S.day,pid=S.activeProfile){S.days[k]=S.days[k]||{};S.days[k][pid]=S.days[k][pid]||{meals:{}};return S.days[k][pid];}
 function dayTotals(k=S.day,pid=S.activeProfile){const d=(S.days[k]||{})[pid];let kcal=0,prot=0;if(d)for(const m in d.meals)for(const it of d.meals[m]){kcal+=it.kcal;prot+=it.prot;}return {kcal,prot};}
 function mealTotals(items){let kcal=0,prot=0;for(const it of items||[]){kcal+=it.kcal;prot+=it.prot;}return {kcal,prot};}
 function dayHasEntries(k,pid){const d=(S.days[k]||{})[pid];return !!d&&Object.values(d.meals).some(a=>a.length);}
 function batchesFor(recipeId){return S.batches.filter(b=>b.recipeId===recipeId&&b.remainingG>5);}
-const mealTarget=(mk,p=prof())=>p.kcal*mealShare(mk);
+const mealTarget=(mk,p=prof())=>p.kcal*((p.split[mk==='col2'?'col':mk]||0)/100);
 /* --- quantités lisibles --- */
 const fmtN=n=>String(r1(n)).replace('.',',');
 const plural=(u,n)=>n>1&&!/[sxz]$/.test(u)?u+'s':u;
@@ -255,11 +254,16 @@ const shortName=n=>n.replace(/\s*\(.*?\)/g,'').trim();
 const roundG=g=>g<20?Math.round(g):Math.round(g/5)*5;
 function qtyTxt(ing,g){if(ing&&ing.unitG){const n=g/ing.unitG;return `${fmtN(n)} ${plural(ing.unit||'unité',n)}`;}return `${r0(g)} g`;}
 /* portion d'une recette découpée par ingrédient : grammes arrondis, unités entières pour les œufs & co */
-function scaledParts(r,targetG){const t=recipeTotals(r);const out={parts:[],g:0,kcal:0,prot:0};if(!t.g||!targetG)return out;const f=targetG/t.g;
-  for(const it of r.ingredients){const ing=ingById(it.ingId);if(!ing)continue;let grams=it.grams*f,n=null;
-    if(ing.unitG){n=Math.max(1,Math.round(grams/ing.unitG));grams=n*ing.unitG;}else grams=Math.max(1,roundG(grams));
+/* recette de référence = 1 portion ; règle de 3 sur chaque ingrédient (unités entières pour œufs & co) */
+function scaledParts(r,mult){const out={parts:[],g:0,kcal:0,prot:0};if(!mult)return out;
+  for(const it of r.ingredients){const ing=ingById(it.ingId);if(!ing)continue;let grams=it.grams*mult,n=null;
+    if(ing.unitG){n=Math.max(1,Math.round(grams/ing.unitG));grams=n*ing.unitG;}else grams=Math.max(1,Math.round(grams));
     out.parts.push({ingId:ing.id,name:ing.name,grams,n,unit:ing.unit||''});out.g+=grams;out.kcal+=ing.kcal*grams/100;out.prot+=ing.prot*grams/100;}
   return out;}
+const fmtP=x=>String(Math.round(x*100)/100).replace('.',',');
+/* sélecteur de portions : 0,5 / 1 / 1,5 / 2 ou valeur libre (1,25…) */
+function portionPicker(cur,setExpr){const std=[0.5,1,1.5,2];return `<div class="chips">${std.map(x=>`<button class="chip ${cur===x?'on':''}" onclick="${setExpr.replace('$V',x)}">${fmtP(x)}</button>`).join('')}
+  <input type="number" inputmode="decimal" step="0.25" min="0.1" placeholder="autre" value="${std.includes(cur)?'':fmtP(cur).replace(',','.')}" style="width:90px;padding:6px 10px;border-radius:20px" onchange="if(+this.value>0){${setExpr.replace('$V','+this.value')}}"></div>`;}
 function partQty(pt){if(pt.n!=null)return `${pt.n} ${plural(pt.unit||'unité',pt.n)}`;return `${pt.grams} g`;}
 function partShort(pt){const nm=shortName(pt.name).toLowerCase();if(pt.n!=null)return nm.startsWith((pt.unit||'').toLowerCase())?partQty(pt):`${partQty(pt)} ${nm}`;return `${pt.grams} g ${nm}`;}
 function partsTable(parts){return `<table class="parts">${parts.map(pt=>`<tr><td>${esc(pt.name)}</td><td>${esc(partQty(pt))}${pt.n!=null?` <small class="muted">(${pt.grams} g)</small>`:''}</td></tr>`).join('')}</table>`;}
@@ -322,52 +326,60 @@ function mealCard(m,items){const t=mealTotals(items);const target=mealTarget(m.k
   return `<div class="meal"><div class="mtitle">${m.l}<small>${r0(t.kcal)} / ${r0(target)} kcal · ${r1(t.prot)} g prot${over>1?` · <span class="over">+${r0(over)}</span>`:''}</small><div class="mbar ${pct>=100?'full':''}"><i style="width:${pct}%"></i></div></div>
   <div class="items">${items.length?items.map((it,i)=>`<div class="item"><div class="n" onclick="editItem('${m.k}',${i})"><b>${esc(it.name)}</b><span>${esc(itemQty(it))} · ${r0(it.kcal)} kcal · ${r1(it.prot)} g prot${it.batchId?' · batch':''}</span>${it.parts&&it.parts.length?`<em>${esc(it.parts.map(partShort).join(' · '))}</em>`:''}</div><button class="x" onclick="removeItem('${m.k}',${i})">×</button></div>`).join(''):'<div class="muted center" style="padding:6px">Rien pour le moment</div>'}</div>
   <div class="adds"><button onclick="pickRecipe('${m.k}')">+ Recette</button><button class="alt" onclick="pickFood('${m.k}')">+ Aliment</button></div></div>`;}
-function itemQty(it){return it.kind==='food'?qtyTxt(ingById(it.ingId),it.grams):`${r0(it.grams)} g`;}
+function itemQty(it){if(it.kind==='food')return qtyTxt(ingById(it.ingId),it.grams);return it.portions?`${fmtP(it.portions)} portion${it.portions>1?'s':''} · ${r0(it.grams)} g`:`${r0(it.grams)} g`;}
 function removeItem(mk,i){const arr=dayData().meals[mk];const it=arr[i];if(it.batchId){const b=S.batches.find(b=>b.id===it.batchId);if(b)b.remainingG+=it.grams;}arr.splice(i,1);if(mk==='col2'&&!arr.length&&!confirm('Garder la collation 2 ?'))delete dayData().meals.col2;render();}
 /* --- modifier la quantité d'une ligne déjà notée --- */
-function editItem(mk,i){const it=dayData().meals[mk][i];const ing=it.kind==='food'&&ingById(it.ingId);pick={mk,i,unitG:ing&&ing.unitG?ing.unitG:0,unit:ing?ing.unit:'',val:ing&&ing.unitG?r1(it.grams/ing.unitG):r0(it.grams)};
+function editItem(mk,i){const it=dayData().meals[mk][i];const r=it.kind==='recipe'&&recById(it.recipeId);
+  if(r&&it.portions){pick={mk,i,portions:it.portions};return renderEditPortions();}
+  const ing=it.kind==='food'&&ingById(it.ingId);pick={mk,i,unitG:ing&&ing.unitG?ing.unitG:0,unit:ing?ing.unit:'',val:ing&&ing.unitG?r1(it.grams/ing.unitG):r0(it.grams)};
   openModal(`<h2>${esc(it.name)}</h2>${it.parts&&it.parts.length?partsTable(it.parts):''}
   <label class="lbl">${pick.unitG?`Nombre (${esc(plural(pick.unit,2))})`:'Quantité totale (g)'}</label><input type="number" inputmode="decimal" id="ei-v" value="${pick.val}">
-  <div class="chips" style="margin-top:8px">${[0.5,0.75,1.25,1.5,2].map(x=>`<button class="chip" onclick="$('#ei-v').value=${pick.unitG?`Math.max(1,Math.round(${pick.val}*${x}))`:`Math.round(${pick.val}*${x})`}">×${String(x).replace('.',',')}</button>`).join('')}</div>
   <button class="btn full" style="margin-top:14px" onclick="saveItem()">Enregistrer</button><button class="btn full ghost" style="margin-top:8px" onclick="closeModal();removeItem('${mk}',${i})">Retirer du repas</button>`);}
-function saveItem(){const it=dayData().meals[pick.mk][pick.i];let v=+$('#ei-v').value;if(!v)return toast('Quantité manquante');const newG=pick.unitG?v*pick.unitG:v;const old=it.grams;
-  const r=it.kind==='recipe'&&recById(it.recipeId);
-  if(r&&!it.batchId){const sp=scaledParts(r,newG);Object.assign(it,{grams:sp.g,kcal:sp.kcal,prot:sp.prot,parts:sp.parts});}
-  else{const f=newG/old;Object.assign(it,{grams:newG,kcal:it.kcal*f,prot:it.prot*f});}
-  if(it.batchId){const b=S.batches.find(b=>b.id===it.batchId);if(b)b.remainingG=Math.max(0,b.remainingG-(it.grams-old));}
+function renderEditPortions(){const it=dayData().meals[pick.mk][pick.i];const r=recById(it.recipeId);const res=portionResult(r,pick.portions,it.batchId);
+  openModal(`<h2>${esc(it.name)}</h2><label class="lbl">Nombre de portions</label>${portionPicker(pick.portions,"pick.portions=$V;renderEditPortions()")}
+  ${it.batchId?`<div class="note">Servir ${r0(res.g)} g du plat préparé.</div>`:partsTable(res.parts)}<div class="band sm" style="margin:8px 0">${r0(res.kcal)} kcal · ${r1(res.prot)} g prot</div>
+  <button class="btn full" onclick="savePortions()">Enregistrer</button><button class="btn full ghost" style="margin-top:8px" onclick="closeModal();removeItem('${pick.mk}',${pick.i})">Retirer du repas</button>`);}
+function savePortions(){const it=dayData().meals[pick.mk][pick.i];const r=recById(it.recipeId);const res=portionResult(r,pick.portions,it.batchId);const old=it.grams;
+  Object.assign(it,{portions:pick.portions,grams:res.g,kcal:res.kcal,prot:res.prot,parts:res.parts});
+  if(it.batchId){const b=S.batches.find(b=>b.id===it.batchId);if(b)b.remainingG=Math.max(0,b.remainingG-(res.g-old));}
+  closeModal();render();toast('Portions modifiées');}
+function saveItem(){const it=dayData().meals[pick.mk][pick.i];let v=+$('#ei-v').value;if(!v)return toast('Quantité manquante');const newG=pick.unitG?v*pick.unitG:v;const old=it.grams;const f=newG/old;
+  Object.assign(it,{grams:newG,kcal:it.kcal*f,prot:it.prot*f});if(it.parts)it.parts=it.parts.map(pt=>({...pt,grams:Math.round(pt.grams*f),n:pt.n!=null?Math.max(1,Math.round(pt.n*f)):null}));
+  if(it.batchId){const b=S.batches.find(b=>b.id===it.batchId);if(b)b.remainingG=Math.max(0,b.remainingG-(newG-old));}
   closeModal();render();toast('Quantité modifiée');}
 
 /* --- ajouter une recette à un repas --- */
 let pick={};
-function pickRecipe(mk){const m=[...MEALS,MEAL_EXTRA].find(x=>x.k===mk);pick={mk,type:m.t,q:'',recipeId:null,mult:1,grams:null,whole:false,batchId:null,also:[]};renderPick();}
-/* quantité visée (g de plat) pour le profil p, selon le choix portions / plat entier / grammes */
-function pickTarget(r,p){const t=recipeTotals(r);const pg=portionG(r,pick.mk,p);if(pick.whole)return t.g;if(pick.grams!=null){const own=portionG(r,pick.mk);return p.id===S.activeProfile?pick.grams:(own?pick.grams/own*pg:pg);}return pg*pick.mult;}
-function pickResult(r,p){const t=recipeTotals(r);const g=pickTarget(r,p);if(pick.batchId)return {parts:[],g,kcal:g*t.kcal100/100,prot:g*t.prot100/100};return scaledParts(r,g);}
+function pickRecipe(mk){const m=[...MEALS,MEAL_EXTRA].find(x=>x.k===mk);pick={mk,type:m.t,q:'',recipeId:null,mults:{},batchId:null,also:[]};renderPick();}
+const multOf=pid=>pick.mults[pid]??1;
+/* quantités pour n portions : règle de 3 sur la recette ; depuis un batch = n × poids d'une portion */
+function portionResult(r,n,batchId){if(batchId){const t=recipeTotals(r);const g=t.g*n;return {parts:[],g,kcal:t.kcal*n,prot:t.prot*n};}return scaledParts(r,n);}
 function renderPick(){
   const list=S.recipes.filter(r=>(!pick.q||r.name.toLowerCase().includes(pick.q)||r.ingredients.some(i=>(ingById(i.ingId)||{}).name?.toLowerCase().includes(pick.q)))).sort((a,b)=>(a.type===pick.type?0:1)-(b.type===pick.type?0:1)||(b.lastUsed||0)-(a.lastUsed||0));
   const r=pick.recipeId&&recById(pick.recipeId);let detail='';
-  if(r){const p=prof();const t=recipeTotals(r);const res=pickResult(r,p);const bs=batchesFor(r.id);const target=mealTarget(pick.mk);const others=S.profiles.filter(x=>x.id!==p.id);
-    detail=`<div class="card cream" style="margin-top:12px" id="pk-detail"><div style="font-size:18px">${esc(r.name)}</div><div class="muted">Portion de ${esc(p.name)} : ${r0(mealShare(pick.mk)*100)} % de ${p.kcal} kcal = ${r0(target)} kcal pour ce repas</div>
-    <label class="lbl">Nombre de portions</label><div class="chips">${[0.5,1,1.5,2].map(x=>`<button class="chip ${pick.grams==null&&!pick.whole&&pick.mult===x?'on':''}" onclick="pick.mult=${x};pick.grams=null;pick.whole=false;renderPick()">${String(x).replace('.',',')}</button>`).join('')}<button class="chip ${pick.whole?'on':''}" onclick="pick.whole=true;pick.grams=null;renderPick()">Plat entier</button></div>
-    <label class="lbl">ou quantité totale exacte (g)</label><input type="number" inputmode="decimal" placeholder="grammes" value="${pick.grams??''}" onchange="pick.grams=this.value?+this.value:null;pick.whole=false;renderPick()">
-    ${bs.length?`<label class="lbl">Prendre dans un batch (plat déjà cuisiné)</label><div class="chips"><button class="chip ${!pick.batchId?'on':''}" onclick="pick.batchId=null;renderPick()">Non, je cuisine</button>${bs.map(b=>`<button class="chip ${pick.batchId===b.id?'on':''}" onclick="pick.batchId='${b.id}';renderPick()">Batch du ${fmtShort(b.date)} (${r0(b.remainingG)} g restants)</button>`).join('')}</div>`:''}
-    ${pick.batchId?`<div class="note">Servir ${r0(res.g)} g du plat préparé.</div>`:`<label class="lbl">À peser pour ${esc(p.name)} (crus)</label>${partsTable(res.parts)}`}
-    <div class="band sm" style="margin:10px 0 4px">${r0(res.g)} g → ${r0(res.kcal)} kcal · ${r1(res.prot)} g prot</div>
-    ${res.kcal>target+1?`<div class="note">Dépasse l'objectif du repas de ${r0(res.kcal-target)} kcal : pas grave, ce sera noté quand même.</div>`:''}
-    ${others.length?`<label class="lbl">On mange la même chose ? Ajouter aussi la portion de :</label><div class="chips">${others.map(o=>{const on=pick.also.includes(o.id);const ro=pickResult(r,o);return `<button class="chip ${on?'on':''}" onclick="toggleAlso('${o.id}')">${on?'✓ ':''}${esc(o.name)} (${r0(ro.g)} g · ${r0(ro.kcal)} kcal)</button>`;}).join('')}</div>
-    ${pick.also.length&&!pick.batchId?pick.also.map(id=>{const o=S.profiles.find(x=>x.id===id);return o?`<label class="lbl">À peser pour ${esc(o.name)}</label>${partsTable(pickResult(r,o).parts)}`:'';}).join(''):''}`:''}
+  if(r){const p=prof();const bs=batchesFor(r.id);const others=S.profiles.filter(x=>x.id!==p.id);
+    const block=(o,title)=>{const n=multOf(o.id);const res=portionResult(r,n,pick.batchId);const target=mealTarget(pick.mk,o);
+      return `<label class="lbl">${title}</label>${portionPicker(n,`pick.mults['${o.id}']=$V;renderPick()`)}
+      ${pick.batchId?`<div class="note">Servir ${r0(res.g)} g du plat préparé.</div>`:partsTable(res.parts)}
+      <div class="band sm" style="margin:6px 0 4px">${esc(o.name)} : ${r0(res.kcal)} kcal · ${r1(res.prot)} g prot <small>(objectif du repas ${r0(target)} kcal)</small></div>
+      ${res.kcal>target+1?`<div class="note">Dépasse l'objectif du repas de ${r0(res.kcal-target)} kcal : pas grave, ce sera noté quand même.</div>`:''}`;};
+    detail=`<div class="card cream" style="margin-top:12px" id="pk-detail"><div style="font-size:18px">${esc(r.name)}</div><div class="muted">Recette de référence : 1 portion</div>
+    ${bs.length?`<label class="lbl">Prendre dans un batch (plat déjà cuisiné)</label><div class="chips"><button class="chip ${!pick.batchId?'on':''}" onclick="pick.batchId=null;renderPick()">Non, je cuisine</button>${bs.map(b=>`<button class="chip ${pick.batchId===b.id?'on':''}" onclick="pick.batchId='${b.id}';renderPick()">Batch du ${fmtShort(b.date)} (${r1(b.remainingG/(recipeTotals(r).g||1))} portions)</button>`).join('')}</div>`:''}
+    ${block(p,`Portions pour ${esc(p.name)}`)}
+    ${others.length?`<label class="lbl">On mange la même chose ? Ajouter aussi pour :</label><div class="chips">${others.map(o=>{const on=pick.also.includes(o.id);return `<button class="chip ${on?'on':''}" onclick="toggleAlso('${o.id}')">${on?'✓ ':''}${esc(o.name)}</button>`;}).join('')}</div>
+    ${pick.also.map(id=>{const o=S.profiles.find(x=>x.id===id);return o?block(o,`Portions pour ${esc(o.name)}`):'';}).join('')}`:''}
     <button class="btn full" style="margin-top:12px" onclick="confirmPick()">Ajouter au repas</button></div>`;}
   openModal(`<h2>Choisir une recette</h2><div class="search"><input type="search" id="pk-in" placeholder="Rechercher..." value="${esc(pick.q)}" oninput="pick.q=this.value.toLowerCase();renderPick();refocus('pk-in')"></div>
   <div class="list">${list.length?list.map(x=>`<button class="${x.id===pick.recipeId?'on':''}" onclick="selectPick('${x.id}')"><span>${esc(x.name)}</span><small>${TYPES.find(t=>t.k===x.type)?.l||''}${batchesFor(x.id).length?' · 🧊':''}</small></button>`).join(''):'<div class="empty">Aucune recette. Crée-en dans l\'onglet Recettes.</div>'}</div>${detail}`);
 }
-function selectPick(id){pick.recipeId=id;pick.grams=null;pick.whole=false;pick.batchId=null;renderPick();const d=document.getElementById('pk-detail');if(d)d.scrollIntoView({behavior:'smooth',block:'start'});}
+function selectPick(id){pick.recipeId=id;pick.mults={};pick.batchId=null;renderPick();const d=document.getElementById('pk-detail');if(d)d.scrollIntoView({behavior:'smooth',block:'start'});}
 function toggleAlso(id){pick.also=pick.also.includes(id)?pick.also.filter(x=>x!==id):[...pick.also,id];renderPick();}
 function confirmPick(){const r=recById(pick.recipeId);if(!r)return;
   const who=[prof(),...pick.also.map(id=>S.profiles.find(x=>x.id===id)).filter(Boolean)];
-  const results=who.map(p=>({p,res:pickResult(r,p)}));if(!results[0].res.g)return;
-  if(pick.batchId){const b=S.batches.find(b=>b.id===pick.batchId);const need=results.reduce((a,x)=>a+x.res.g,0);if(b){if(need>b.remainingG+1&&!confirm(`Il ne reste que ${r0(b.remainingG)} g dans ce batch. Continuer ?`))return;b.remainingG=Math.max(0,b.remainingG-need);}}
-  for(const {p,res} of results){const d=dayData(S.day,p.id);const arr=d.meals[pick.mk]=d.meals[pick.mk]||[];
-    arr.push({kind:'recipe',recipeId:r.id,name:r.name,grams:res.g,kcal:res.kcal,prot:res.prot,batchId:pick.batchId,parts:res.parts});}
+  const results=who.map(p=>({p,n:multOf(p.id),res:portionResult(r,multOf(p.id),pick.batchId)}));if(!results[0].res.g)return;
+  if(pick.batchId){const b=S.batches.find(b=>b.id===pick.batchId);const need=results.reduce((a,x)=>a+x.res.g,0);if(b){if(need>b.remainingG+1&&!confirm(`Il ne reste que ${r1(b.remainingG/(recipeTotals(r).g||1))} portion(s) dans ce batch. Continuer ?`))return;b.remainingG=Math.max(0,b.remainingG-need);}}
+  for(const {p,n,res} of results){const d=dayData(S.day,p.id);const arr=d.meals[pick.mk]=d.meals[pick.mk]||[];
+    arr.push({kind:'recipe',recipeId:r.id,name:r.name,portions:n,grams:res.g,kcal:res.kcal,prot:res.prot,batchId:pick.batchId,parts:res.parts});}
   r.usageCount=(r.usageCount||0)+1;r.lastUsed=Date.now();closeModal();render();toast(results.length>1?`Ajouté pour ${results.map(x=>x.p.name).join(' et ')}`:'Ajouté');}
 
 /* --- ajouter un aliment simple --- */
@@ -427,14 +439,12 @@ function renderRecettes(){
 }
 function recipeCard(r,mode){const t=recipeTotals(r);const ph=r.photoId&&photoCache[r.photoId];const keys=r.ingredients.slice(0,3).map(i=>(ingById(i.ingId)||{}).name).filter(Boolean).join(', ');
   return `<div class="rcard" onclick="openDetail=openDetail==='${r.id}'?null:'${r.id}';${mode==='batch'?'renderBatch()':'renderRecettes()'}"><div class="ph">${ph?`<img src="${ph}">`:TYPES.find(x=>x.k===r.type)?.em||'🍽'}</div>
-  <div class="info"><h3>${esc(r.name)}</h3><div>${r.time?r.time+' min':'—'} | ${r.difficulty||'—'} | ${r0(t.kcal100)} kcal/100 g</div><div class="muted">Ingrédients clés : ${esc(keys)||'—'}</div><div class="see">Voir recette ${openDetail===r.id?'▲':'▼'}</div></div></div>${openDetail===r.id?recipeDetail(r):''}`;}
-let detailMeal=null;
-function defMeal(r){return r.type==='pdj'?'pdj':r.type==='collation'?'col':'dej';}
-function recipeDetail(r){const t=recipeTotals(r);const p=prof();const mk=detailMeal&&detailMeal.r===r.id?detailMeal.mk:defMeal(r);const sp=scaledParts(r,portionG(r,mk,p));
-  return `<div class="detail"><div style="font-size:17px;margin-bottom:4px">Portion de ${esc(p.name)} pour le</div>
-  <div class="chips">${MEALS.map(m=>`<button class="chip ${mk===m.k?'on':''}" onclick="event.stopPropagation();detailMeal={r:'${r.id}',mk:'${m.k}'};renderRecettes()">${m.l}</button>`).join('')}</div>
-  ${partsTable(sp.parts)}<div class="band sm" style="margin:4px 0 12px">${r0(sp.g)} g → ${r0(sp.kcal)} kcal · ${r1(sp.prot)} g prot</div>
-  <details><summary class="muted">Plat entier : ${r0(t.g)} g · ${r0(t.kcal)} kcal · ${r1(t.prot)} g prot</summary><table>${r.ingredients.map(i=>{const ing=ingById(i.ingId);return ing?`<tr><td>${esc(ing.name)}</td><td>${esc(qtyTxt(ing,i.grams))} · ${r0(ing.kcal*i.grams/100)} kcal · ${r1(ing.prot*i.grams/100)} g prot</td></tr>`:'';}).join('')}</table></details>
+  <div class="info"><h3>${esc(r.name)}</h3><div>${r.time?r.time+' min':'—'} | ${r.difficulty||'—'} | ${r0(t.kcal)} kcal/portion</div><div class="muted">Ingrédients clés : ${esc(keys)||'—'}</div><div class="see">Voir recette ${openDetail===r.id?'▲':'▼'}</div></div></div>${openDetail===r.id?recipeDetail(r):''}`;}
+let detailMult=null;
+function recipeDetail(r){const t=recipeTotals(r);const n=detailMult&&detailMult.r===r.id?detailMult.n:1;const sp=scaledParts(r,n);
+  return `<div class="detail" onclick="event.stopPropagation()"><div style="font-size:17px;margin-bottom:4px">Nombre de portions</div>
+  ${portionPicker(n,`detailMult={r:'${r.id}',n:$V};renderRecettes()`)}
+  ${partsTable(sp.parts)}<div class="band sm" style="margin:4px 0 12px">${fmtP(n)} portion${n>1?'s':''} : ${r0(sp.kcal)} kcal · ${r1(sp.prot)} g prot</div>
   ${r.steps?`<div style="margin-top:8px;white-space:pre-wrap">${esc(r.steps)}</div>`:''}
   <div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn sm" onclick="event.stopPropagation();editRecipe('${r.id}')">✎ Modifier</button><button class="btn sm rose" onclick="event.stopPropagation();newBatch('${r.id}')">🧊 Préparer en batch</button><button class="btn sm ghost" onclick="event.stopPropagation();delRecipe('${r.id}')">Supprimer</button></div></div>`;}
 function delRecipe(id){if(!confirm('Supprimer cette recette ?'))return;const r=recById(id);if(r.photoId)delPhoto(r.photoId);S.recipes=S.recipes.filter(x=>x.id!==id);openDetail=null;render();}
@@ -451,10 +461,10 @@ function renderEditor(){
   <label class="lbl">Nom</label><input type="text" value="${esc(ed.name)}" oninput="ed.name=this.value">
   <label class="lbl">Type de repas</label><div class="chips">${TYPES.map(x=>`<button class="chip ${ed.type===x.k?'on':''}" onclick="ed.type='${x.k}';renderEditor()">${x.em} ${x.l}</button>`).join('')}</div>
   <div class="grid2"><div><label class="lbl">Temps (min)</label><input type="number" inputmode="numeric" value="${ed.time}" oninput="ed.time=this.value"></div><div><label class="lbl">Difficulté</label><select onchange="ed.difficulty=this.value">${DIFF.map(x=>`<option ${ed.difficulty===x?'selected':''}>${x}</option>`).join('')}</select></div></div>
-  <label class="lbl">Ingrédients du plat entier (crus) — l'app calcule ensuite la portion de chacun</label>
+  <label class="lbl">Ingrédients pour <b>1 portion</b> (crus) — la règle de 3 est faite au moment de manger</label>
   ${ed.ingredients.map((i,idx)=>{const ing=ingById(i.ingId);return `<div class="ingrow"><button class="ingname" onclick="pickIngFor(${idx})">${ing?esc(ing.name):'— choisir —'}</button>${ing&&ing.unitG?`<input type="number" inputmode="decimal" step="0.5" value="${r1(i.grams/ing.unitG)}" onchange="ed.ingredients[${idx}].grams=+this.value*${ing.unitG};renderEditor()"><span class="unit">${esc(plural(ing.unit,2))}</span>`:`<input type="number" inputmode="decimal" value="${i.grams}" placeholder="g" onchange="ed.ingredients[${idx}].grams=+this.value;renderEditor()"><span class="unit">g</span>`}<button class="x" onclick="ed.ingredients.splice(${idx},1);renderEditor()">×</button></div>`;}).join('')}
-  <button class="btn sm rose" onclick="pickIngFor(-1)">+ Ingrédient</button>
-  <div class="band sm">Plat entier : ${r0(t.g)} g · ${r0(t.kcal)} kcal · ${r1(t.prot)} g prot</div>
+  <div class="row" style="flex-wrap:wrap"><button class="btn sm rose" onclick="pickIngFor(-1)">+ Ingrédient</button>${ed.ingredients.length?`<button class="btn sm ghost" onclick="divideRecipe()">Ma recette est pour plusieurs personnes → ramener à 1 portion</button>`:''}</div>
+  <div class="band sm">1 portion : ${r0(t.g)} g · ${r0(t.kcal)} kcal · ${r1(t.prot)} g prot</div>
   <label class="lbl">Préparation (optionnel)</label><textarea oninput="ed.steps=this.value">${esc(ed.steps)}</textarea>
   <button class="btn full" style="margin-top:16px" onclick="saveRecipe()">Enregistrer</button>`;
 }
@@ -465,6 +475,7 @@ function renderIngPick(){const list=S.ingredients.filter(i=>!pick.q||i.name.toLo
   <div class="list">${list.map(i=>`<button onclick="setEdIng('${i.id}')"><span>${esc(i.name)}</span><small>${i.kcal} kcal · ${i.prot} g / 100 g${i.unitG?` · à l'unité`:''}</small></button>`).join('')||'<div class="empty">Introuvable : crée-le ci-dessous</div>'}</div>
   <details style="margin-top:12px" ${list.length?'':'open'}><summary class="muted">Ingrédient introuvable ? En créer un</summary>${newIngForm('edpick')}</details>`);}
 function setEdIng(id){const ing=ingById(id);const g=ing.unitG||100;if(pick.edIdx<0)ed.ingredients.push({ingId:id,grams:g});else{const row=ed.ingredients[pick.edIdx];const wasUnit=ingById(row.ingId)?.unitG;row.ingId=id;if(!row.grams||wasUnit||ing.unitG)row.grams=g;}closeModal();renderEditor();}
+function divideRecipe(){const v=prompt('La recette saisie est pour combien de personnes ?','4');const n=+String(v||'').replace(',','.');if(!n||n<=0)return;for(const i of ed.ingredients)i.grams=Math.round(i.grams/n*10)/10;renderEditor();toast(`Quantités divisées par ${fmtP(n)}`);}
 async function edPhoto(inp){const f=inp.files[0];if(!f)return;ed.photo=await resizeImage(f);renderEditor();}
 function saveRecipe(){if(!ed.name.trim())return toast('Donne un nom à la recette');const ings=ed.ingredients.filter(i=>i.ingId&&i.grams>0).map(i=>({ingId:i.ingId,grams:i.grams}));if(!ings.length)return toast('Ajoute au moins un ingrédient');
   let r=ed.id?recById(ed.id):null;if(!r){r={id:uid(),usageCount:0,lastUsed:0};S.recipes.push(r);}
@@ -487,22 +498,22 @@ function delIng(id){const used=S.recipes.some(r=>r.ingredients.some(i=>i.ingId==
 let bq='',btype=null;
 function renderBatch(){setHeader(fmtLong(todayKey()));const p=prof();
   const list=S.batches.filter(b=>{const r=recById(b.recipeId);return r&&(!btype||r.type===btype)&&(!bq||r.name.toLowerCase().includes(bq));}).sort((a,b)=>b.date.localeCompare(a.date));
-  const card=b=>{const r=recById(b.recipeId);const t=recipeTotals(r);const ph=r.photoId&&photoCache[r.photoId];const pg=portionG(r,r.type==='pdj'?'pdj':r.type==='collation'?'col':'dej',p);const parts=pg?b.remainingG/pg:0;const keys=r.ingredients.slice(0,3).map(i=>(ingById(i.ingId)||{}).name).filter(Boolean).join(', ');
-    return `<div class="rcard" onclick="openDetail=openDetail==='b${b.id}'?null:'b${b.id}';renderBatch()"><div class="ph">${ph?`<img src="${ph}">`:TYPES.find(x=>x.k===r.type)?.em}</div><div class="info"><h3>${esc(r.name)}</h3><div>Type : ${TYPES.find(x=>x.k===r.type)?.l} | Batch du ${fmtShort(b.date)}</div><div><b>${r1(parts)} portion(s)</b> pour ${esc(p.name)} · ${r0(b.remainingG)} g restants ${b.remainingG<=5?'<span class="tag">vide</span>':''}</div><div class="muted">Ingrédients : ${esc(keys)}</div><div class="see">Voir Détails ${openDetail==='b'+b.id?'▲':'▼'}</div></div></div>
-    ${openDetail==='b'+b.id?`<div class="detail"><div>Préparé le ${fmtLong(b.date)} · ${r0(b.initialG)} g au départ (${r0(b.initialG*t.kcal100/100)} kcal)</div><div>Consommé : ${r0(b.initialG-b.remainingG)} g</div><div class="muted">1 portion ${esc(p.name)} = ${r0(pg)} g (${r0(pg*t.kcal100/100)} kcal · ${r1(pg*t.prot100/100)} g prot)</div>
+  const card=b=>{const r=recById(b.recipeId);const t=recipeTotals(r);const ph=r.photoId&&photoCache[r.photoId];const pg=t.g;const parts=pg?b.remainingG/pg:0;const keys=r.ingredients.slice(0,3).map(i=>(ingById(i.ingId)||{}).name).filter(Boolean).join(', ');
+    return `<div class="rcard" onclick="openDetail=openDetail==='b${b.id}'?null:'b${b.id}';renderBatch()"><div class="ph">${ph?`<img src="${ph}">`:TYPES.find(x=>x.k===r.type)?.em}</div><div class="info"><h3>${esc(r.name)}</h3><div>Type : ${TYPES.find(x=>x.k===r.type)?.l} | Batch du ${fmtShort(b.date)}</div><div><b>${r1(parts)} portion(s)</b> · ${r0(b.remainingG)} g restants ${b.remainingG<=5?'<span class="tag">vide</span>':''}</div><div class="muted">Ingrédients : ${esc(keys)}</div><div class="see">Voir Détails ${openDetail==='b'+b.id?'▲':'▼'}</div></div></div>
+    ${openDetail==='b'+b.id?`<div class="detail"><div>Préparé le ${fmtLong(b.date)} · ${r0(b.initialG)} g au départ (${r0(b.initialG*t.kcal100/100)} kcal)</div><div>Consommé : ${r0(b.initialG-b.remainingG)} g</div><div class="muted">1 portion = ${r0(pg)} g (${r0(pg*t.kcal100/100)} kcal · ${r1(pg*t.prot100/100)} g prot)</div>
     <div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn sm" onclick="event.stopPropagation();S.day=todayKey();goTab('suivi');pickRecipe('${r.type==='pdj'?'pdj':r.type==='collation'?'col':'dej'}');pick.recipeId='${r.id}';pick.batchId='${b.id}';renderPick()">Manger une portion aujourd'hui</button><button class="btn sm rose" onclick="event.stopPropagation();adjustBatch('${b.id}')">Ajuster le reste</button><button class="btn sm ghost" onclick="event.stopPropagation();if(confirm('Supprimer ce batch ?')){S.batches=S.batches.filter(x=>x.id!=='${b.id}');render();}">Supprimer</button></div></div>`:''}`;};
   $('#main').innerHTML=`<div class="search"><input type="search" id="bq-in" placeholder="Rechercher un plat..." value="${esc(bq)}" oninput="bq=this.value.toLowerCase();renderBatch();refocus('bq-in')"><span>🔍</span></div>
   <button class="btn full" style="margin-bottom:12px" onclick="newBatch()">+ Nouveau batch</button>
   <div class="band">Mes plats préparés (Frigo et congés)${btype?` — ${TYPES.find(t=>t.k===btype).l} <button style="color:#fff" onclick="btype=null;renderBatch()">×</button>`:''}</div>
   ${list.length?list.map(card).join(''):'<div class="empty">Aucun plat préparé. Lance un batch depuis une recette.</div>'}
   <div class="band">Inventaire par Type de Repas</div>${TYPES.map(t=>{const n=S.batches.filter(b=>{const r=recById(b.recipeId);return r&&r.type===t.k&&b.remainingG>5;}).length;return `<div class="typecard" onclick="btype='${t.k}';renderBatch()">${t.l}<div class="em">${t.em}</div><div class="muted">${n} plat(s) en stock</div></div>`;}).join('')}`;}
-function newBatch(recipeId){pick={recipeId:recipeId||null,mult:1,q:'',date:todayKey()};renderNewBatch();}
+function newBatch(recipeId){pick={recipeId:recipeId||null,mult:4,q:'',date:todayKey()};renderNewBatch();}
 function renderNewBatch(){const list=S.recipes.filter(r=>!pick.q||r.name.toLowerCase().includes(pick.q)).sort((a,b)=>a.name.localeCompare(b.name));const r=pick.recipeId&&recById(pick.recipeId);const t=r&&recipeTotals(r);
   openModal(`<h2>Préparer un batch</h2><div class="search"><input type="search" id="nb-in" placeholder="Recette..." value="${esc(pick.q)}" oninput="pick.q=this.value.toLowerCase();renderNewBatch();refocus('nb-in')"></div>
   <div class="list">${list.map(x=>`<button class="${x.id===pick.recipeId?'on':''}" onclick="pick.recipeId='${x.id}';renderNewBatch()"><span>${esc(x.name)}</span><small>${r0(recipeTotals(x).g)} g</small></button>`).join('')||'<div class="empty">Aucune recette</div>'}</div>
-  ${r?`<div class="card cream" style="margin-top:12px"><label class="lbl">Combien de fois la recette ?</label><div class="chips">${[1,2,3,4].map(x=>`<button class="chip ${pick.mult===x?'on':''}" onclick="pick.mult=${x};renderNewBatch()">×${x}</button>`).join('')}</div>
+  ${r?`<div class="card cream" style="margin-top:12px"><label class="lbl">Combien de portions tu prépares ?</label><div class="chips">${[2,4,6,8].map(x=>`<button class="chip ${pick.mult===x?'on':''}" onclick="pick.mult=${x};renderNewBatch()">${x}</button>`).join('')}<input type="number" inputmode="decimal" min="1" placeholder="autre" value="${[2,4,6,8].includes(pick.mult)?'':pick.mult}" style="width:90px;padding:6px 10px;border-radius:20px" onchange="if(+this.value>0){pick.mult=+this.value;renderNewBatch()}"></div>${partsTable(scaledParts(r,pick.mult).parts)}
   <label class="lbl">Date de préparation</label><input type="date" value="${pick.date}" onchange="pick.date=this.value">
-  <div class="band sm" style="margin:14px 0 8px">${r0(t.g*pick.mult)} g · ${r0(t.kcal*pick.mult)} kcal · ≈ ${r1(t.g*pick.mult/(portionG(r,'dej')||1))} portions ${esc(prof().name)}</div><button class="btn full" onclick="confirmBatch()">Mettre au frigo / congé</button></div>`:''}`);}
+  <div class="band sm" style="margin:14px 0 8px">${r0(t.g*pick.mult)} g · ${r0(t.kcal*pick.mult)} kcal · ${fmtP(pick.mult)} portions</div><button class="btn full" onclick="confirmBatch()">Mettre au frigo / congé</button></div>`:''}`);}
 function confirmBatch(){const r=recById(pick.recipeId);const t=recipeTotals(r);S.batches.push({id:uid(),recipeId:r.id,date:pick.date||todayKey(),initialG:t.g*pick.mult,remainingG:t.g*pick.mult});closeModal();tab='batch';sub=null;render();toast('Batch enregistré');}
 function adjustBatch(id){const b=S.batches.find(x=>x.id===id);const v=prompt('Grammes restants',r0(b.remainingG));if(v===null)return;b.remainingG=Math.max(0,+v);render();}
 

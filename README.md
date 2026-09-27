@@ -24,19 +24,16 @@ et « Ajouter à l'écran d'accueil ».
 
 ## Logique des portions
 
-- Une recette est saisie pour le **plat entier** (grammes crus par ingrédient).
-- Chaque profil a un objectif kcal/jour, un objectif protéines et une répartition
-  (petit-déj 25 %, déjeuner 35 %, collation 10 %, dîner 30 %, modifiable).
-- « Ta portion » = la quantité du plat qui couvre la part du repas dans l'objectif du profil.
-- Dans le suivi : choix de la recette → 0.5 / 1 / 1.5 / 2 portions ou grammes exacts.
-- La portion est détaillée **ingrédient par ingrédient** (grammes crus à peser). Les ingrédients
-  qui se comptent (œufs, fruits, wraps…) ont une unité et un poids unitaire : la portion tombe
-  sur un nombre entier (ex. « 2 œufs »), et les kcal/protéines notées correspondent à ces quantités.
-- Un repas peut dépasser son objectif : il est noté quand même, la barre du repas est pleine et
-  l'excédent s'affiche (+X kcal).
-- « Ajouter aussi la portion de… » note le même plat pour l'autre profil, avec sa propre portion.
-- Si la recette a un batch en stock, on peut y piocher : les grammes sont décomptés
-  (et rendus si on supprime la ligne).
+- Une recette est saisie pour **1 portion** (recette de référence, grammes crus par ingrédient).
+  Si tu as une recette pour 4, le bouton « ramener à 1 portion » divise toutes les quantités.
+- Au moment de manger, on choisit 0,5 / 1 / 1,5 / 2 portions ou une valeur libre (1,25…) :
+  chaque ingrédient est multiplié par ce nombre (règle de 3). Les ingrédients qui se comptent
+  (œufs, fruits, wraps…) sont arrondis à l'unité entière.
+- Chaque profil garde un objectif kcal/jour et une répartition par repas : la barre du repas
+  montre où on en est. Un repas qui dépasse est noté quand même (barre pleine + excédent affiché).
+- « Ajouter aussi pour… » note le même plat pour l'autre profil, avec son propre nombre de portions.
+- Batch : on indique le nombre de portions préparées ; chaque portion mangée est décomptée
+  (et rendue si on supprime la ligne).
 
 ## Profils au premier lancement
 
