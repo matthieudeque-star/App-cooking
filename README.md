@@ -9,7 +9,7 @@ Toute l'app tient dans `www/index.html`. Les données restent sur la tablette
 ## Compiler l'APK (même procédure que Carnet de salle)
 
 ```bash
-git clone <ce dépôt> && cd app-repas
+git clone <ce dépôt> && cd App-cooking
 npm install
 npx cap add android        # une seule fois
 npx cap sync android       # à refaire après chaque modification de www/index.html
